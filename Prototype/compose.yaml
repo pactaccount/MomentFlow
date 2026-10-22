@@ -1,7 +1,7 @@
 services:
   product:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     environment:
       DATA_DIR: /data

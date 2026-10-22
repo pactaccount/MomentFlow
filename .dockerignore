@@ -1,0 +1,10 @@
+.git/
+**/.env
+**/.env.*
+!**/.env.example
+**/__pycache__/
+**/*.pyc
+**/.venv/
+Prototype/runtime/
+Prototype/videos/
+Prototype/chroma_db/

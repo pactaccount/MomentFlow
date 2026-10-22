@@ -9,7 +9,7 @@ MomentFlow accepts a video, indexes visual frames, spoken words, and on-screen t
 3. The worker sends frame batches to the pinned SigLIP 2 model in the private Hugging Face Space and commits visual vectors, transcript segments, and OCR text to SQLite/FTS5 together.
 4. Search embeds the text query through the same Space, fuses visual, speech, and screen-text evidence, and returns ranked video moments.
 
-The pinned visual checkpoint is `google/siglip2-base-patch16-224` revision `75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2`. The Space app is in [`hf_zerogpu_space/`](hf_zerogpu_space/). The Render configuration is [`../render.yaml`](../render.yaml).
+The pinned visual checkpoint is `google/siglip2-base-patch16-224` revision `75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2`. The Space app is in [`hf_zerogpu_space/`](hf_zerogpu_space/). The Docker build is defined by the repository-root [`Dockerfile`](../Dockerfile); Render Web Service settings are documented in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
 
 ## Keys and settings
 

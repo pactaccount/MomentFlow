@@ -64,16 +64,16 @@ PUBLIC_DEPLOYMENT=1
 DATA_DIR=/data
 ```
 
-Render supplies `PORT` and its service URL automatically. Its service URL is used for the same-origin check on requests that change data. Add **`HF_TOKEN`** as a secret Environment variable in the same page. Do not put the token's value in `render.yaml` or Git. `render.yaml` is optional and does not configure a Web Service created manually.
+Render supplies `PORT` and its service URL automatically. Its service URL is used for the same-origin check on requests that change data. Add **`HF_TOKEN`** as a secret Environment variable in the same page. Do not put the token's value in Git. The manual Web Service reads its settings from the Render Dashboard; no Blueprint or `render.yaml` is needed.
 
 `ASR_MODEL` is optional on Render because the backend defaults to `base.en`. Set `ASR_MODEL=base.en` in Render Environment only if you want it visible there; do not choose another checkpoint for a comparison until the baseline has passed.
 
 ## Manual Render Web Service setup (no Blueprint)
 
-The reported build failure, `failed to read dockerfile: open Dockerfile: no such file or directory`, occurs because a manual Render service defaults to the repository root while this Dockerfile is in `Prototype/`. Fix the existing service rather than creating a Blueprint:
+The reported build failure, `failed to read dockerfile: open Dockerfile: no such file or directory`, occurred because the earlier Git commit had its only Dockerfile in `Prototype/` while the manual Render service searched the repository root. The current Git commit moves the single Dockerfile to the repository root. Fix the existing service rather than creating a Blueprint:
 
-1. Open **Render Dashboard → your Web Service → Settings → Build & Deploy**. Set **Root Directory** to `Prototype` (no leading slash), **Dockerfile Path** to `./Dockerfile`, and **Docker Build Context Directory** to `.`. Render resolves the Dockerfile and build context relative to the Root Directory. Select **Docker** as the runtime. The Dockerfile's `CMD` starts the app; no custom Docker command is needed.
-2. Set the service plan to **Free** and **Health Check Path** to `/api/health`. Use GitHub repo `pactaccount/MomentFlow`, branch `main`. Render changes to root directory can prompt you to update relative build fields; confirm the values above.
+1. Open **Render Dashboard → your Web Service → Settings → Build & Deploy**. Clear **Root Directory** so it uses the repository root. Set **Dockerfile Path** to `./Dockerfile` and **Docker Build Context Directory** to `.`. Select **Docker** as the runtime. The Dockerfile's `CMD` starts the app; no custom Docker command is needed.
+2. Set the service plan to **Free** and **Health Check Path** to `/api/health`. Use GitHub repo `pactaccount/MomentFlow`, branch `main`. The **source is this GitHub repository**, which contains the website and Dockerfile. The Hugging Face Space is a separate running model API called with `HF_TOKEN`; do not select it as the Render source.
 3. Under **Environment**, add `HF_SPACE_ID=pactaccount/momentflow-siglip2`, `PUBLIC_DEPLOYMENT=1`, `DATA_DIR=/data`, and secret `HF_TOKEN=<your token>`. `ASR_MODEL=base.en` is optional because it is the default. Do not set `PORT`; Render provides it.
 4. The Hugging Face Space is **Running** and `python3 verify_hf_space.py` has passed. No further Space command is needed unless its app changes.
 5. In Render, choose **Manual Deploy → Deploy latest commit**. If the build fails again, read the first error after `load build definition`; if startup fails, inspect runtime logs. Open the Render URL, upload a short public-demo video, wait for **Ready**, and search for a visible event.
