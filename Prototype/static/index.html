@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102c37">
+  <title>MomentFlow · Video knowledge, findable</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="launch-screen" class="launch-screen" hidden>
+    <div class="launch-card">
+      <div class="brand-mark">M</div>
+      <h1>Open MomentFlow through its server</h1>
+      <p>This HTML file is only the interface. Upload and search need the MomentFlow API running behind it.</p>
+      <a class="primary" href="http://127.0.0.1:7860/">Open local demo</a>
+      <p class="launch-note">If the link does not open, start the app server or use its deployed Render URL.</p>
+    </div>
+  </div>
+  <div id="app-shell" class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="MomentFlow home"><span class="brand-mark">M</span><span>MomentFlow<small>VIDEO KNOWLEDGE</small></span></a>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <button class="nav-item active" data-view="library" type="button"><span class="nav-icon">▦</span> Library</button>
+        <button class="nav-item" data-view="search" type="button"><span class="nav-icon">⌕</span> Search moments</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-note"><strong>Search inside every video</strong><span>Visuals, spoken words, and text on screen.</span></div>
+      </div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <form id="search-form" class="top-search" role="search">
+          <span aria-hidden="true">⌕</span>
+          <input id="query" type="search" maxlength="300" placeholder="Search scenes, spoken words, or screen text" aria-label="Search videos" required>
+          <kbd>↵</kbd>
+        </form>
+        <button id="upload-open" class="primary upload-top" type="button">＋ Upload video</button>
+      </header>
+
+      <main>
+        <section id="library-view">
+          <div class="page-heading"><div><p class="eyebrow">YOUR WORKSPACE</p><h1>Video library</h1><p class="subhead">Every useful moment, ready to find and share.</p></div><span id="library-count" class="count-pill">0 videos</span></div>
+          <div class="summary-grid">
+            <div class="summary-card"><span class="summary-icon">▦</span><span class="summary-number" id="count-all">0</span><span class="summary-label">Total videos</span></div>
+            <div class="summary-card"><span class="summary-icon">✓</span><span class="summary-number" id="count-ready">0</span><span class="summary-label">Ready to search</span></div>
+            <div class="summary-card"><span class="summary-icon">◷</span><span class="summary-number" id="count-processing">0</span><span class="summary-label">Processing</span></div>
+          </div>
+          <div class="section-heading"><div><h2>All videos</h2><p>Browse your indexed recordings.</p></div><button id="refresh-button" class="subtle-button" type="button">↻ Refresh</button></div>
+          <div id="videos" class="library-list" aria-live="polite"></div>
+        </section>
+
+        <section id="search-view" hidden>
+          <div class="page-heading"><div><p class="eyebrow">SEARCH RESULTS</p><h1 id="result-heading">Find a moment</h1><p id="search-status" class="subhead" role="status">Search visuals, narration, and text visible on screen.</p></div></div>
+          <div class="search-layout">
+            <div id="results" class="results-list"></div>
+            <aside id="viewer" class="viewer-card" aria-label="Selected video moment">
+              <div class="viewer-placeholder"><span>▶</span><strong>Select a result to watch</strong><p>The matching moment and its evidence will appear here.</p></div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="upload-dialog" class="upload-dialog">
+    <form id="upload-form">
+      <div class="dialog-heading"><div><p class="eyebrow">ADD TO LIBRARY</p><h2>Upload a video</h2></div><button id="upload-close" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <p>We'll index visual scenes, spoken instructions, and on-screen text. Videos become searchable after processing.</p>
+      <label class="dropzone" for="file"><span>↑</span><strong>Choose a video file</strong><small>MP4, MOV, AVI, or MKV · up to 500 MB and 30 minutes</small></label>
+      <input id="file" type="file" accept="video/*,.mkv" required>
+      <p id="selected-file" class="selected-file"></p>
+      <button class="primary full" type="submit">Upload and index</button>
+      <p id="upload-status" class="message" role="status"></p>
+    </form>
+  </dialog>
+  <script src="/static/app.js"></script>
+</body>
+</html>

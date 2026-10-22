@@ -1,0 +1,28 @@
+name: MomentFlow checks
+on:
+  pull_request:
+    paths: ["Prototype/**", ".github/workflows/momentflow-ci.yml"]
+  push:
+    paths: ["Prototype/**", ".github/workflows/momentflow-ci.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lightweight-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Prototype
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies without model weights
+        run: python -m pip install fastapi httpx numpy Pillow opencv-python-headless python-multipart prometheus-client
+      - name: Unit and contract tests
+        run: python -m unittest test_product test_multimodal test_evaluation test_hf_space_encoder
+      - name: JavaScript syntax
+        run: node --check static/app.js
+      - name: Compose configuration
+        run: docker compose --env-file .env.example config --quiet

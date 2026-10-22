@@ -1,0 +1,320 @@
+{
+  "dataset": "Chris-davis-thor/Ball_sports_movements",
+  "model": "google/siglip2-base-patch16-224",
+  "videos": 4,
+  "segments": 16,
+  "indexed_frames": 47,
+  "video_recall_at_1": 0.4375,
+  "video_recall_at_5": 0.6875,
+  "segment_recall_at_1": 0.125,
+  "segment_recall_at_5": 0.5625,
+  "median_query_latency_sec": 0.02,
+  "indexing": [
+    {
+      "video": "clip_01",
+      "seconds": 7.33
+    },
+    {
+      "video": "clip_02",
+      "seconds": 0.68
+    },
+    {
+      "video": "clip_03",
+      "seconds": 1.31
+    },
+    {
+      "video": "clip_04",
+      "seconds": 0.87
+    }
+  ],
+  "details": [
+    {
+      "query": "Player walks onto the court and squares up",
+      "video": "clip_01",
+      "segment_sec": [
+        0.0,
+        3.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 2,
+      "latency_sec": 0.955,
+      "top_hit": {
+        "video_id": "clip_01",
+        "filename": "clip_01.mp4",
+        "timestamp_sec": 5.0,
+        "score": 0.1604,
+        "video_url": "/api/media/clip_01"
+      }
+    },
+    {
+      "query": "Receives the ball and loads the shooting stance",
+      "video": "clip_01",
+      "segment_sec": [
+        3.0,
+        6.0
+      ],
+      "video_rank": 4,
+      "moment_rank": 4,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 0.0,
+        "score": 0.1153,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "Rises and releases a jump shot toward the hoop",
+      "video": "clip_01",
+      "segment_sec": [
+        6.0,
+        9.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 1,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_01",
+        "filename": "clip_01.mp4",
+        "timestamp_sec": 9.0,
+        "score": 0.1398,
+        "video_url": "/api/media/clip_01"
+      }
+    },
+    {
+      "query": "Follows through and lands, watching the shot",
+      "video": "clip_01",
+      "segment_sec": [
+        9.0,
+        12.32
+      ],
+      "video_rank": 11,
+      "moment_rank": 11,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_03",
+        "filename": "clip_03.mp4",
+        "timestamp_sec": 11.0,
+        "score": 0.1311,
+        "video_url": "/api/media/clip_03"
+      }
+    },
+    {
+      "query": "Tracks the ball and splits into a ready stance",
+      "video": "clip_02",
+      "segment_sec": [
+        0.0,
+        2.5
+      ],
+      "video_rank": 10,
+      "moment_rank": 10,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 0.0,
+        "score": 0.1272,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "Takes the racket back to load the stroke",
+      "video": "clip_02",
+      "segment_sec": [
+        2.5,
+        5.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 1,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_02",
+        "filename": "clip_02.mp4",
+        "timestamp_sec": 4.0,
+        "score": 0.1333,
+        "video_url": "/api/media/clip_02"
+      }
+    },
+    {
+      "query": "Swings and strikes the ball over the net",
+      "video": "clip_02",
+      "segment_sec": [
+        5.0,
+        8.0
+      ],
+      "video_rank": 10,
+      "moment_rank": 13,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_03",
+        "filename": "clip_03.mp4",
+        "timestamp_sec": 10.0,
+        "score": 0.143,
+        "video_url": "/api/media/clip_03"
+      }
+    },
+    {
+      "query": "Recovers position as the rally continues",
+      "video": "clip_02",
+      "segment_sec": [
+        8.0,
+        10.81
+      ],
+      "video_rank": 17,
+      "moment_rank": 20,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_01",
+        "filename": "clip_01.mp4",
+        "timestamp_sec": 3.0,
+        "score": 0.0785,
+        "video_url": "/api/media/clip_01"
+      }
+    },
+    {
+      "query": "Attack develops and the ball is worked forward",
+      "video": "clip_03",
+      "segment_sec": [
+        0.0,
+        4.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 3,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_03",
+        "filename": "clip_03.mp4",
+        "timestamp_sec": 10.0,
+        "score": 0.1348,
+        "video_url": "/api/media/clip_03"
+      }
+    },
+    {
+      "query": "An attacker drives into the penalty area",
+      "video": "clip_03",
+      "segment_sec": [
+        4.0,
+        7.0
+      ],
+      "video_rank": 2,
+      "moment_rank": 5,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 1.0,
+        "score": 0.1588,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "A shot is struck toward goal",
+      "video": "clip_03",
+      "segment_sec": [
+        7.0,
+        9.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 9,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_03",
+        "filename": "clip_03.mp4",
+        "timestamp_sec": 10.0,
+        "score": 0.1536,
+        "video_url": "/api/media/clip_03"
+      }
+    },
+    {
+      "query": "Goalkeeper and players react to the attempt",
+      "video": "clip_03",
+      "segment_sec": [
+        9.0,
+        11.1
+      ],
+      "video_rank": 2,
+      "moment_rank": 2,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 10.0,
+        "score": 0.1541,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "Ball is played toward the goal",
+      "video": "clip_04",
+      "segment_sec": [
+        0.0,
+        4.0
+      ],
+      "video_rank": 4,
+      "moment_rank": 5,
+      "latency_sec": 0.021,
+      "top_hit": {
+        "video_id": "clip_03",
+        "filename": "clip_03.mp4",
+        "timestamp_sec": 3.0,
+        "score": 0.1515,
+        "video_url": "/api/media/clip_03"
+      }
+    },
+    {
+      "query": "The attacker shoots on target",
+      "video": "clip_04",
+      "segment_sec": [
+        4.0,
+        6.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 3,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 0.0,
+        "score": 0.1223,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "The keeper dives to parry the shot",
+      "video": "clip_04",
+      "segment_sec": [
+        6.0,
+        9.0
+      ],
+      "video_rank": 1,
+      "moment_rank": 9,
+      "latency_sec": 0.019,
+      "top_hit": {
+        "video_id": "clip_04",
+        "filename": "clip_04.mp4",
+        "timestamp_sec": 10.0,
+        "score": 0.1404,
+        "video_url": "/api/media/clip_04"
+      }
+    },
+    {
+      "query": "Players contest the rebound",
+      "video": "clip_04",
+      "segment_sec": [
+        9.0,
+        10.98
+      ],
+      "video_rank": 9,
+      "moment_rank": 19,
+      "latency_sec": 0.02,
+      "top_hit": {
+        "video_id": "clip_01",
+        "filename": "clip_01.mp4",
+        "timestamp_sec": 12.0,
+        "score": 0.1239,
+        "video_url": "/api/media/clip_01"
+      }
+    }
+  ]
+}

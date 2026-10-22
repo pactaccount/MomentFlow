@@ -1,0 +1,747 @@
+{
+  "dataset": "hari31416/search-anything-benchmark / MSR-VTT subset",
+  "model": "google/siglip2-base-patch16-224",
+  "candidate_videos": 50,
+  "indexed_frames": 797,
+  "indexing_seconds_this_run": 33.49,
+  "first_frame_baseline_development": {
+    "queries": 30,
+    "recall_at_1": 0.5,
+    "recall_at_5": 0.7333333333333333,
+    "recall_at_10": 0.7333333333333333,
+    "mrr_at_10": 0.5972222222222222,
+    "median_query_latency_sec": 0.0195,
+    "details": [
+      {
+        "query_id": "msrvtt:video8556",
+        "query": "a group of people are stamp dancing on stage in front of a crowd",
+        "rank": 3,
+        "top_video": "video:video7134",
+        "latency_sec": 0.039
+      },
+      {
+        "query_id": "msrvtt:video9872",
+        "query": "someone is playing a first person shooter game and is making jokes",
+        "rank": 32,
+        "top_video": "video:video8111",
+        "latency_sec": 0.021
+      },
+      {
+        "query_id": "msrvtt:video9452",
+        "query": "an animated grey shark in the middle of a blue water simulation background rotating in a circle on the screen of a monitor",
+        "rank": 2,
+        "top_video": "video:video7491",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8472",
+        "query": "persons are attending a class with laptops",
+        "rank": 1,
+        "top_video": "video:video8472",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video9698",
+        "query": "a women is talking about the books she likes and the second favourite one is the amc the walking dead",
+        "rank": 4,
+        "top_video": "video:video7360",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video9788",
+        "query": "a woman with long white hair and dressed all in white is sailing through the sky over snow covered ground",
+        "rank": 1,
+        "top_video": "video:video9788",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video9014",
+        "query": "a cartoon plane picking up fruit and putting it in trucks",
+        "rank": 1,
+        "top_video": "video:video9014",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video8741",
+        "query": "a tour through chinese architecture",
+        "rank": 1,
+        "top_video": "video:video8741",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7828",
+        "query": "a man gives a lecture with a microphone in front of a laptop with a red glow behind him",
+        "rank": 26,
+        "top_video": "video:video8260",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8466",
+        "query": "men are playing instruments in a band",
+        "rank": 1,
+        "top_video": "video:video8466",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8474",
+        "query": "men and women sing in a choir on stage with a piano",
+        "rank": 1,
+        "top_video": "video:video8474",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7911",
+        "query": "a woman is making a recipe in a sauce pan",
+        "rank": 3,
+        "top_video": "video:video9836",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7461",
+        "query": "a man playing video games",
+        "rank": 42,
+        "top_video": "video:video8260",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7228",
+        "query": "a man is sitting and playing guitar",
+        "rank": 2,
+        "top_video": "video:video9872",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8798",
+        "query": "the lighting work is going on the building",
+        "rank": 1,
+        "top_video": "video:video8798",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8069",
+        "query": "an astronaut is looking at a flag",
+        "rank": 1,
+        "top_video": "video:video8069",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7371",
+        "query": "a tv shows review program hosts discuss about the performance and staying on air of star trek",
+        "rank": 48,
+        "top_video": "video:video8472",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video9341",
+        "query": "the press would rather interview the most ignorant person they can find than beautiful women",
+        "rank": 23,
+        "top_video": "video:video8120",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video8492",
+        "query": "a man is very excited",
+        "rank": 1,
+        "top_video": "video:video8492",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video7751",
+        "query": "two women rare sitting speaking on sites in los angeles",
+        "rank": 46,
+        "top_video": "video:video9698",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video7491",
+        "query": "a person explaining a concept in a show",
+        "rank": 26,
+        "top_video": "video:video9304",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video8118",
+        "query": "women of a foreign nation comb their hair and perform in traditional costumes",
+        "rank": 1,
+        "top_video": "video:video8118",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video7360",
+        "query": "a woman is showing shrimp and bunch of different other ingredients in order to cook a dish",
+        "rank": 2,
+        "top_video": "video:video9836",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video9836",
+        "query": "a woman is stirring food",
+        "rank": 1,
+        "top_video": "video:video9836",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video8339",
+        "query": "kids in a circle play with beach ball and surf boards",
+        "rank": 1,
+        "top_video": "video:video8339",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8416",
+        "query": "a video of different racially motivated protests is playing while the song everyone s a little bit racist plays",
+        "rank": 1,
+        "top_video": "video:video8416",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7438",
+        "query": "the articles of a shop is being shown",
+        "rank": 11,
+        "top_video": "video:video7491",
+        "latency_sec": 0.02
+      },
+      {
+        "query_id": "msrvtt:video7134",
+        "query": "a class is being introduced to a digital reading device",
+        "rank": 1,
+        "top_video": "video:video7134",
+        "latency_sec": 0.022
+      },
+      {
+        "query_id": "msrvtt:video8048",
+        "query": "george lopez s family sits down for dinner",
+        "rank": 2,
+        "top_video": "video:video7911",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video9829",
+        "query": "rusty houser talks about how hitler is loved from his results",
+        "rank": 1,
+        "top_video": "video:video9829",
+        "latency_sec": 0.019
+      }
+    ]
+  },
+  "first_frame_baseline_held_out": {
+    "queries": 20,
+    "recall_at_1": 0.7,
+    "recall_at_5": 0.8,
+    "recall_at_10": 0.85,
+    "mrr_at_10": 0.7424999999999999,
+    "median_query_latency_sec": 0.018,
+    "details": [
+      {
+        "query_id": "msrvtt:video9020",
+        "query": "a person is looking at a camera during a wrestling event",
+        "rank": 1,
+        "top_video": "video:video9020",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7206",
+        "query": "a helicopter is shown flying in what seems to be a war zone in syria",
+        "rank": 1,
+        "top_video": "video:video7206",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8334",
+        "query": "a cartoon of a dog running and howling",
+        "rank": 1,
+        "top_video": "video:video8334",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video9813",
+        "query": "a man drives a motorcycle in a video game",
+        "rank": 1,
+        "top_video": "video:video9813",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video7546",
+        "query": "a man and a woman are talking about something",
+        "rank": 35,
+        "top_video": "video:video8048",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video9304",
+        "query": "three young people sing on stage",
+        "rank": 2,
+        "top_video": "video:video8474",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video9503",
+        "query": "a woman is talking about how jeans with patches or rips is trendy",
+        "rank": 1,
+        "top_video": "video:video9503",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video8260",
+        "query": "man in white hoodie turns a page to tell you about an online store the url is available in the description",
+        "rank": 1,
+        "top_video": "video:video8260",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video8120",
+        "query": "a guest is speaking with a television show host",
+        "rank": 1,
+        "top_video": "video:video8120",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video7731",
+        "query": "fox newscasters discuss chris christie and his poll numbers",
+        "rank": 1,
+        "top_video": "video:video7731",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video8655",
+        "query": "an animal is throwing a piece of junk",
+        "rank": 1,
+        "top_video": "video:video8655",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video7765",
+        "query": "a person is discussing a car",
+        "rank": 4,
+        "top_video": "video:video8260",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video9321",
+        "query": "penguins wander around on ice",
+        "rank": 1,
+        "top_video": "video:video9321",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video8863",
+        "query": "an animated girl talks to a baby and plays with it",
+        "rank": 1,
+        "top_video": "video:video8863",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video7578",
+        "query": "people are on stage talking",
+        "rank": 11,
+        "top_video": "video:video8474",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video8111",
+        "query": "people are using a computer software tool",
+        "rank": 10,
+        "top_video": "video:video8472",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video7587",
+        "query": "two men in a wrestling competition",
+        "rank": 1,
+        "top_video": "video:video7587",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video8626",
+        "query": "numbers are displayed on the screen",
+        "rank": 11,
+        "top_video": "video:video9829",
+        "latency_sec": 0.018
+      },
+      {
+        "query_id": "msrvtt:video7835",
+        "query": "two cartoon characters walking underwater",
+        "rank": 1,
+        "top_video": "video:video7835",
+        "latency_sec": 0.019
+      },
+      {
+        "query_id": "msrvtt:video9535",
+        "query": "a man is talking about a sports car he is driving",
+        "rank": 1,
+        "top_video": "video:video9535",
+        "latency_sec": 0.019
+      }
+    ]
+  },
+  "development": {
+    "queries": 30,
+    "recall_at_1": 0.7333333333333333,
+    "recall_at_5": 0.8666666666666667,
+    "recall_at_10": 0.9333333333333333,
+    "mrr_at_10": 0.7936507936507937,
+    "median_query_latency_sec": 0.026,
+    "details": [
+      {
+        "query_id": "msrvtt:video8556",
+        "query": "a group of people are stamp dancing on stage in front of a crowd",
+        "rank": 1,
+        "top_video": "video:video8556",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video9872",
+        "query": "someone is playing a first person shooter game and is making jokes",
+        "rank": 24,
+        "top_video": "video:video9813",
+        "latency_sec": 0.024
+      },
+      {
+        "query_id": "msrvtt:video9452",
+        "query": "an animated grey shark in the middle of a blue water simulation background rotating in a circle on the screen of a monitor",
+        "rank": 1,
+        "top_video": "video:video9452",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8472",
+        "query": "persons are attending a class with laptops",
+        "rank": 1,
+        "top_video": "video:video8472",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video9698",
+        "query": "a women is talking about the books she likes and the second favourite one is the amc the walking dead",
+        "rank": 1,
+        "top_video": "video:video9698",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video9788",
+        "query": "a woman with long white hair and dressed all in white is sailing through the sky over snow covered ground",
+        "rank": 1,
+        "top_video": "video:video9788",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video9014",
+        "query": "a cartoon plane picking up fruit and putting it in trucks",
+        "rank": 1,
+        "top_video": "video:video9014",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8741",
+        "query": "a tour through chinese architecture",
+        "rank": 1,
+        "top_video": "video:video8741",
+        "latency_sec": 0.027
+      },
+      {
+        "query_id": "msrvtt:video7828",
+        "query": "a man gives a lecture with a microphone in front of a laptop with a red glow behind him",
+        "rank": 1,
+        "top_video": "video:video7828",
+        "latency_sec": 0.03
+      },
+      {
+        "query_id": "msrvtt:video8466",
+        "query": "men are playing instruments in a band",
+        "rank": 1,
+        "top_video": "video:video8466",
+        "latency_sec": 0.029
+      },
+      {
+        "query_id": "msrvtt:video8474",
+        "query": "men and women sing in a choir on stage with a piano",
+        "rank": 1,
+        "top_video": "video:video8474",
+        "latency_sec": 0.027
+      },
+      {
+        "query_id": "msrvtt:video7911",
+        "query": "a woman is making a recipe in a sauce pan",
+        "rank": 3,
+        "top_video": "video:video9836",
+        "latency_sec": 0.03
+      },
+      {
+        "query_id": "msrvtt:video7461",
+        "query": "a man playing video games",
+        "rank": 43,
+        "top_video": "video:video8492",
+        "latency_sec": 0.03
+      },
+      {
+        "query_id": "msrvtt:video7228",
+        "query": "a man is sitting and playing guitar",
+        "rank": 3,
+        "top_video": "video:video9872",
+        "latency_sec": 0.027
+      },
+      {
+        "query_id": "msrvtt:video8798",
+        "query": "the lighting work is going on the building",
+        "rank": 2,
+        "top_video": "video:video9829",
+        "latency_sec": 0.027
+      },
+      {
+        "query_id": "msrvtt:video8069",
+        "query": "an astronaut is looking at a flag",
+        "rank": 1,
+        "top_video": "video:video8069",
+        "latency_sec": 0.035
+      },
+      {
+        "query_id": "msrvtt:video7371",
+        "query": "a tv shows review program hosts discuss about the performance and staying on air of star trek",
+        "rank": 1,
+        "top_video": "video:video7371",
+        "latency_sec": 0.03
+      },
+      {
+        "query_id": "msrvtt:video9341",
+        "query": "the press would rather interview the most ignorant person they can find than beautiful women",
+        "rank": 3,
+        "top_video": "video:video7731",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8492",
+        "query": "a man is very excited",
+        "rank": 1,
+        "top_video": "video:video8492",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7751",
+        "query": "two women rare sitting speaking on sites in los angeles",
+        "rank": 1,
+        "top_video": "video:video7751",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7491",
+        "query": "a person explaining a concept in a show",
+        "rank": 7,
+        "top_video": "video:video7828",
+        "latency_sec": 0.027
+      },
+      {
+        "query_id": "msrvtt:video8118",
+        "query": "women of a foreign nation comb their hair and perform in traditional costumes",
+        "rank": 1,
+        "top_video": "video:video8118",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7360",
+        "query": "a woman is showing shrimp and bunch of different other ingredients in order to cook a dish",
+        "rank": 1,
+        "top_video": "video:video7360",
+        "latency_sec": 0.031
+      },
+      {
+        "query_id": "msrvtt:video9836",
+        "query": "a woman is stirring food",
+        "rank": 1,
+        "top_video": "video:video9836",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8339",
+        "query": "kids in a circle play with beach ball and surf boards",
+        "rank": 1,
+        "top_video": "video:video8339",
+        "latency_sec": 0.024
+      },
+      {
+        "query_id": "msrvtt:video8416",
+        "query": "a video of different racially motivated protests is playing while the song everyone s a little bit racist plays",
+        "rank": 1,
+        "top_video": "video:video8416",
+        "latency_sec": 0.024
+      },
+      {
+        "query_id": "msrvtt:video7438",
+        "query": "the articles of a shop is being shown",
+        "rank": 6,
+        "top_video": "video:video8260",
+        "latency_sec": 0.024
+      },
+      {
+        "query_id": "msrvtt:video7134",
+        "query": "a class is being introduced to a digital reading device",
+        "rank": 1,
+        "top_video": "video:video7134",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8048",
+        "query": "george lopez s family sits down for dinner",
+        "rank": 1,
+        "top_video": "video:video8048",
+        "latency_sec": 0.024
+      },
+      {
+        "query_id": "msrvtt:video9829",
+        "query": "rusty houser talks about how hitler is loved from his results",
+        "rank": 1,
+        "top_video": "video:video9829",
+        "latency_sec": 0.025
+      }
+    ]
+  },
+  "held_out": {
+    "queries": 20,
+    "recall_at_1": 0.9,
+    "recall_at_5": 0.95,
+    "recall_at_10": 0.95,
+    "mrr_at_10": 0.925,
+    "median_query_latency_sec": 0.025,
+    "details": [
+      {
+        "query_id": "msrvtt:video9020",
+        "query": "a person is looking at a camera during a wrestling event",
+        "rank": 1,
+        "top_video": "video:video9020",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video7206",
+        "query": "a helicopter is shown flying in what seems to be a war zone in syria",
+        "rank": 1,
+        "top_video": "video:video7206",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8334",
+        "query": "a cartoon of a dog running and howling",
+        "rank": 1,
+        "top_video": "video:video8334",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video9813",
+        "query": "a man drives a motorcycle in a video game",
+        "rank": 1,
+        "top_video": "video:video9813",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7546",
+        "query": "a man and a woman are talking about something",
+        "rank": 1,
+        "top_video": "video:video7546",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video9304",
+        "query": "three young people sing on stage",
+        "rank": 1,
+        "top_video": "video:video9304",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video9503",
+        "query": "a woman is talking about how jeans with patches or rips is trendy",
+        "rank": 1,
+        "top_video": "video:video9503",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8260",
+        "query": "man in white hoodie turns a page to tell you about an online store the url is available in the description",
+        "rank": 1,
+        "top_video": "video:video8260",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8120",
+        "query": "a guest is speaking with a television show host",
+        "rank": 1,
+        "top_video": "video:video8120",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video7731",
+        "query": "fox newscasters discuss chris christie and his poll numbers",
+        "rank": 1,
+        "top_video": "video:video7731",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8655",
+        "query": "an animal is throwing a piece of junk",
+        "rank": 1,
+        "top_video": "video:video8655",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7765",
+        "query": "a person is discussing a car",
+        "rank": 1,
+        "top_video": "video:video7765",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video9321",
+        "query": "penguins wander around on ice",
+        "rank": 1,
+        "top_video": "video:video9321",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8863",
+        "query": "an animated girl talks to a baby and plays with it",
+        "rank": 1,
+        "top_video": "video:video8863",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video7578",
+        "query": "people are on stage talking",
+        "rank": 13,
+        "top_video": "video:video7546",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video8111",
+        "query": "people are using a computer software tool",
+        "rank": 2,
+        "top_video": "video:video8472",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video7587",
+        "query": "two men in a wrestling competition",
+        "rank": 1,
+        "top_video": "video:video7587",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video8626",
+        "query": "numbers are displayed on the screen",
+        "rank": 1,
+        "top_video": "video:video8626",
+        "latency_sec": 0.026
+      },
+      {
+        "query_id": "msrvtt:video7835",
+        "query": "two cartoon characters walking underwater",
+        "rank": 1,
+        "top_video": "video:video7835",
+        "latency_sec": 0.025
+      },
+      {
+        "query_id": "msrvtt:video9535",
+        "query": "a man is talking about a sports car he is driving",
+        "rank": 1,
+        "top_video": "video:video9535",
+        "latency_sec": 0.025
+      }
+    ]
+  }
+}

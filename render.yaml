@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: momentflow-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Prototype/Dockerfile
+    dockerContext: ./Prototype
+    healthCheckPath: /api/health
+    autoDeployTrigger: off
+    envVars:
+      - key: PUBLIC_DEPLOYMENT
+        value: "1"
+      - key: DATA_DIR
+        value: /data
+      - key: HF_SPACE_ID
+        value: pactaccount/momentflow-siglip2
+      - key: HF_TOKEN
+        sync: false
