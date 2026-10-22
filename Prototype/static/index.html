@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#102c37">
-  <title>MomentFlow · Video knowledge, findable</title>
+  <meta name="theme-color" content="#101b31">
+  <title>MomentFlow · Video intelligence workspace</title>
   <link id="app-style" rel="stylesheet" href="/static/style.css">
   <script>
     if (location.protocol === 'file:') document.getElementById('app-style').href = 'style.css';
@@ -14,55 +14,82 @@
   <div id="launch-screen" class="launch-screen" hidden>
     <div class="launch-card">
       <div class="brand-mark">M</div>
-      <h1>Open MomentFlow through its server</h1>
-      <p>This HTML file is only the interface. Upload and search need the MomentFlow API running behind it.</p>
-      <a class="primary" href="http://127.0.0.1:7860/">Open local demo</a>
-      <p class="launch-note">If the link does not open, start the app server or use its deployed Render URL.</p>
+      <p class="eyebrow">MOMENTFLOW</p>
+      <h1>Open the workspace through its server</h1>
+      <p>This file contains the interface. Video uploads and search need the MomentFlow API behind it.</p>
+      <a class="primary" href="http://127.0.0.1:7860/">Open local workspace</a>
+      <p class="launch-note">Start the app server first, or use your deployed Render URL.</p>
     </div>
   </div>
+
   <div id="app-shell" class="shell">
     <aside class="sidebar">
-      <a class="brand" href="/" aria-label="MomentFlow home"><span class="brand-mark">M</span><span>MomentFlow<small>VIDEO KNOWLEDGE</small></span></a>
-      <div class="workspace-label">WORKSPACE</div>
+      <a class="brand" href="/" aria-label="MomentFlow home">
+        <span class="brand-mark">M</span>
+        <span class="brand-name">MomentFlow<small>VIDEO INTELLIGENCE</small></span>
+      </a>
+      <div class="workspace-switch"><span class="workspace-avatar">M</span><span><strong>Demo workspace</strong><small>Public environment</small></span><span class="workspace-chevron" aria-hidden="true">⌄</span></div>
+      <div class="nav-caption">WORKSPACE</div>
       <nav aria-label="Main navigation">
-        <button class="nav-item active" data-view="library" type="button"><span class="nav-icon">▦</span> Library</button>
-        <button class="nav-item" data-view="search" type="button"><span class="nav-icon">⌕</span> Search moments</button>
+        <button class="nav-item active" data-view="library" type="button"><span class="nav-icon" aria-hidden="true">▦</span><span>Video library</span></button>
+        <button class="nav-item" data-view="search" type="button"><span class="nav-icon" aria-hidden="true">⌕</span><span>Moment search</span></button>
       </nav>
       <div class="sidebar-bottom">
-        <div class="sidebar-note"><strong>Search inside every video</strong><span>Visuals, spoken words, and text on screen.</span></div>
+        <div class="pipeline-note">
+          <span class="note-label">SEARCH PIPELINE</span>
+          <strong>Three ways to find a moment</strong>
+          <span>Visual events · Speech · Screen text</span>
+        </div>
+        <div class="sidebar-foot">MomentFlow <span>v1 demo</span></div>
       </div>
     </aside>
 
     <div class="main-column">
       <header class="topbar">
+        <div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-separator">/</span><strong id="breadcrumb-current">Video library</strong></div>
         <form id="search-form" class="top-search" role="search">
-          <span aria-hidden="true">⌕</span>
-          <input id="query" type="search" maxlength="300" placeholder="Search scenes, spoken words, or screen text" aria-label="Search videos" required>
+          <span class="search-symbol" aria-hidden="true">⌕</span>
+          <input id="query" type="search" maxlength="300" placeholder="Search moments across your videos" aria-label="Search videos" required>
           <kbd>↵</kbd>
         </form>
-        <button id="upload-open" class="primary upload-top" type="button">＋ Upload video</button>
+        <span class="environment-badge"><span class="badge-dot"></span>Demo</span>
+        <button id="upload-open" class="primary upload-top" type="button"><span aria-hidden="true">＋</span> Upload video</button>
       </header>
 
       <main>
         <section id="library-view">
-          <div class="page-heading"><div><p class="eyebrow">YOUR WORKSPACE</p><h1>Video library</h1><p class="subhead">Every useful moment, ready to find and share.</p></div><span id="library-count" class="count-pill">0 videos</span></div>
-          <div class="summary-grid">
-            <div class="summary-card"><span class="summary-icon">▦</span><span class="summary-number" id="count-all">0</span><span class="summary-label">Total videos</span></div>
-            <div class="summary-card"><span class="summary-icon">✓</span><span class="summary-number" id="count-ready">0</span><span class="summary-label">Ready to search</span></div>
-            <div class="summary-card"><span class="summary-icon">◷</span><span class="summary-number" id="count-processing">0</span><span class="summary-label">Processing</span></div>
+          <div class="page-heading">
+            <div><p class="eyebrow">CONTENT WORKSPACE</p><h1>Video library</h1><p class="subhead">One place to prepare, inspect, and search every recording.</p></div>
+            <div class="heading-tag">Multimodal search</div>
           </div>
-          <div class="section-heading"><div><h2>All videos</h2><p>Browse your indexed recordings.</p></div><button id="refresh-button" class="subtle-button" type="button">↻ Refresh</button></div>
-          <div id="videos" class="library-list" aria-live="polite"></div>
+          <div class="summary-grid" aria-label="Library summary">
+            <div class="summary-card"><span class="summary-label">Total videos</span><strong id="count-all">0</strong><span class="summary-caption">In this workspace</span></div>
+            <div class="summary-card"><span class="summary-label">Searchable</span><strong id="count-ready">0</strong><span class="summary-caption"><span class="tiny-dot ready-dot"></span>Indexed and ready</span></div>
+            <div class="summary-card"><span class="summary-label">In progress</span><strong id="count-processing">0</strong><span class="summary-caption"><span class="tiny-dot processing-dot"></span>Queued or indexing</span></div>
+          </div>
+          <div class="content-panel">
+            <div class="panel-heading"><div><h2>All recordings <span id="library-count" class="count-pill">0</span></h2><p>Find a recording or inspect its processing status.</p></div><button id="refresh-button" class="subtle-button" type="button">↻ Refresh</button></div>
+            <div class="library-toolbar">
+              <label class="filter-search"><span aria-hidden="true">⌕</span><input id="filter-input" type="search" placeholder="Filter by filename" aria-label="Filter videos by filename"></label>
+              <label class="select-wrap"><span>Status</span><select id="status-filter" aria-label="Filter videos by status"><option value="all">All</option><option value="ready">Ready</option><option value="processing">Processing</option><option value="failed">Failed</option></select></label>
+            </div>
+            <div class="list-header" aria-hidden="true"><span>RECORDING</span><span>STATUS</span><span>DURATION</span><span>INDEX</span><span>ACTIONS</span></div>
+            <div id="videos" class="library-list" aria-live="polite"></div>
+          </div>
         </section>
 
         <section id="search-view" hidden>
-          <div class="page-heading"><div><p class="eyebrow">SEARCH RESULTS</p><h1 id="result-heading">Find a moment</h1><p id="search-status" class="subhead" role="status">Search visuals, narration, and text visible on screen.</p></div></div>
+          <div class="page-heading">
+            <div><p class="eyebrow">DISCOVERY WORKSPACE</p><h1 id="result-heading">Moment search</h1><p id="search-status" class="subhead" role="status">Search visual events, spoken phrases, and words on screen.</p></div>
+            <div class="heading-tag">Timestamped evidence</div>
+          </div>
           <div class="search-layout">
-            <div id="results" class="results-list"></div>
+            <div class="results-panel"><div class="results-heading"><h2>Matches</h2><span id="results-count" class="count-pill">0</span></div><div id="results" class="results-list"></div></div>
             <aside id="viewer" class="viewer-card" aria-label="Selected video moment">
-              <div class="viewer-placeholder"><span>▶</span><strong>Select a result to watch</strong><p>The matching moment and its evidence will appear here.</p></div>
+              <div class="viewer-placeholder"><span class="placeholder-play">▶</span><strong>Select a matched moment</strong><p>Playback opens at the matching timestamp with its evidence.</p></div>
             </aside>
           </div>
+          <div class="signal-guide"><strong>Search coverage</strong><span>VISUAL EVENTS</span><span>SPOKEN WORDS</span><span>SCREEN TEXT</span></div>
         </section>
       </main>
     </div>
@@ -70,13 +97,12 @@
 
   <dialog id="upload-dialog" class="upload-dialog">
     <form id="upload-form">
-      <div class="dialog-heading"><div><p class="eyebrow">ADD TO LIBRARY</p><h2>Upload a video</h2></div><button id="upload-close" class="icon-button" type="button" aria-label="Close">×</button></div>
-      <p>We'll index visual scenes, spoken instructions, and on-screen text. Videos become searchable after processing.</p>
-      <label class="dropzone" for="file"><span>↑</span><strong>Choose a video file</strong><small>MP4, MOV, AVI, or MKV · up to 500 MB and 30 minutes</small></label>
-      <input id="file" type="file" accept="video/*,.mkv" required>
-      <p id="selected-file" class="selected-file"></p>
-      <button class="primary full" type="submit">Upload and index</button>
-      <p id="upload-status" class="message" role="status"></p>
+      <div class="dialog-heading"><div><p class="eyebrow">ADD RECORDING</p><h2>Upload a video</h2></div><button id="upload-close" class="icon-button" type="button" aria-label="Close upload dialog">×</button></div>
+      <p class="dialog-description">MomentFlow will index scenes, speech, and text visible in the video. Search becomes available when processing finishes.</p>
+      <label class="dropzone" for="file"><span class="upload-glyph" aria-hidden="true">↑</span><strong>Choose a video to index</strong><small>MP4, MOV, AVI, or MKV · up to 500 MB · up to 30 minutes</small></label>
+      <input id="file" class="visually-hidden" type="file" accept="video/*,.mkv" required>
+      <p id="selected-file" class="selected-file" aria-live="polite"></p>
+      <div class="dialog-footer"><button class="primary full" type="submit">Upload and index <span aria-hidden="true">→</span></button><p id="upload-status" class="message" role="status"></p></div>
     </form>
   </dialog>
   <script>
