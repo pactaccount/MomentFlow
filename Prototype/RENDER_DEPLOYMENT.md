@@ -10,12 +10,11 @@
 
 The Space is **private**. That hides it from unauthenticated visitors, who can see a 404. The Render website can still call it using `HF_TOKEN`. The website itself has no sign-in. Anyone with the Render URL can upload, search, and delete demo videos; use only videos you are comfortable exposing in a public demo.
 
-## Why the Space currently fails
+## Current Space status and API fix
 
-The Space exists and the token can read it, but its repository still contains only `.gitattributes` and a starter `README.md`. Hugging Face reports `NO_APP_FILE`: there is no root-level `app.py` to run. Pushing the MomentFlow code to GitHub does not populate the separate Hugging Face Space repository. These are separate problems:
+The Space now contains the three application files and answers API requests. The first live verification found that `/health` returned an empty tuple. Gradio derives API outputs from function return annotations; the deployed `app.py` omitted them. The corrected local `app.py` declares `-> str` for all three endpoints. Upload that corrected file to the Space root, replacing its existing `app.py`, and wait for **Running** before verifying again. Pushing MomentFlow to GitHub does not update the separate Space repository.
 
-1. **404 in an ordinary browser:** expected for this private Space unless you are signed in to the owner account. If you are signed in and still see a 404, verify you are using the `pactaccount` account and the exact URL `https://huggingface.co/spaces/pactaccount/momentflow-siglip2`.
-2. **`NO_APP_FILE` when using the valid token:** the Space needs the three prepared files below. It cannot perform inference until its build finishes and its status says **Running**.
+A **404 in an ordinary browser** is expected for this private Space unless you are signed in to the owner account. Render will call it with `HF_TOKEN`.
 
 The local files to review are:
 
@@ -25,7 +24,7 @@ MomentFlow/Prototype/hf_zerogpu_space/app.py
 MomentFlow/Prototype/hf_zerogpu_space/requirements.txt
 ```
 
-Sign in to the `pactaccount` Hugging Face account and open the Space's **Files** tab. At the repository root, use **Add file → Upload files** for the prepared `app.py` and `requirements.txt`; replace the starter `README.md` with the prepared `README.md` using **Edit** or **Add file → Upload files**. Commit the changes in the Hugging Face UI. The root listing must show `README.md`, `app.py`, and `requirements.txt` directly; do not upload a folder named `hf_zerogpu_space`. The README YAML sets `sdk: gradio` and `app_file: app.py`. **Settings → Hardware** already requests **ZeroGPU**. Wait for **Running**, then check **Build** and **Runtime** logs if it does not start. No API key needs to be placed in the Space: it downloads a public, pinned SigLIP 2 model. The `HF_TOKEN` stays only in the product backend.
+Sign in to the `pactaccount` Hugging Face account and open the Space's **Files** tab. At the repository root, use **Add file → Upload files** to replace `app.py` with the corrected local file. Commit the change in the Hugging Face UI. The root listing must show `README.md`, `app.py`, and `requirements.txt` directly; do not upload a folder named `hf_zerogpu_space`. **Settings → Hardware** should remain **ZeroGPU**. Wait for **Running**, then check **Build** and **Runtime** logs if it does not start. No API key is needed inside the Space: it downloads a public, pinned SigLIP 2 model. The `HF_TOKEN` stays only in the product backend.
 
 The product repository is already at `https://github.com/pactaccount/MomentFlow` on `main`. The Space upload is the next separate deployment action.
 
@@ -57,7 +56,7 @@ There is **no project `.env` file** to add to the Space and **no token to paste 
 
 ### On Render
 
-Render does **not** read your Mac's `.env`. When creating the Blueprint from the reviewed MomentFlow GitHub repository, `render.yaml` supplies these public configuration values automatically:
+Render does **not** read your Mac's `.env`. For a manually created **Docker Web Service**, add these values in the service's **Environment** page:
 
 ```text
 HF_SPACE_ID=pactaccount/momentflow-siglip2
@@ -65,23 +64,26 @@ PUBLIC_DEPLOYMENT=1
 DATA_DIR=/data
 ```
 
-Render supplies `PORT` and its service URL automatically. Its service URL is used for the same-origin check on requests that change data. The only value you enter yourself in Render is **`HF_TOKEN`**, as a secret Environment variable. In the initial Blueprint creation flow, Render prompts for it because `render.yaml` uses `sync: false`. For an existing service, open **Render Dashboard → momentflow-demo → Environment → Add Environment Variable**, set **Key** to `HF_TOKEN`, paste the token into **Value**, save, and redeploy. Do not put the token's value in `render.yaml` or Git.
+Render supplies `PORT` and its service URL automatically. Its service URL is used for the same-origin check on requests that change data. Add **`HF_TOKEN`** as a secret Environment variable in the same page. Do not put the token's value in `render.yaml` or Git. `render.yaml` is optional and does not configure a Web Service created manually.
 
 `ASR_MODEL` is optional on Render because the backend defaults to `base.en`. Set `ASR_MODEL=base.en` in Render Environment only if you want it visible there; do not choose another checkpoint for a comparison until the baseline has passed.
 
-## Exact order to bring the demo online
+## Manual Render Web Service setup (no Blueprint)
 
-1. **Upload the three Space files** listed above to the Space repository root and wait for the Space to show **Running**. A starter page or `NO_APP_FILE` means the model API is still unavailable.
-2. **Verify the model API once** from `Prototype/` with `python3 verify_hf_space.py`. The script reads the local `.env` without displaying the token. It calls one text embedding and one image embedding and checks that both are finite, normalized vectors of the same dimension. Run this only after the Space shows **Running**.
-3. **Use the existing GitHub repository** `https://github.com/pactaccount/MomentFlow` on `main`. Its root already contains `render.yaml`, with `Prototype/Dockerfile` beneath it. Push any later UI or code changes before creating the Render service.
-4. **Create a Render Blueprint** from that GitHub repository. Confirm it creates one **Free Docker Web Service** named `momentflow-demo` with health path `/api/health`. When prompted, enter `HF_TOKEN`. Do not enter `APP_TOKEN`.
-5. **Open the Render URL directly**; there is no login. Upload a short video you may publicly demo. Wait until the library row says **Ready**, then search for a visible event. If the clip has audio or readable screen text, also test a spoken phrase and visible text. Check Render logs if the job fails.
-6. **Run the same short-video test in the sandbox** with Docker Desktop installed and running: from `Prototype/`, run `docker compose up --build -d`, open `http://127.0.0.1:7860`, and inspect `docker compose logs --tail=100 product` if needed. This uses the same Dockerfile, worker, model Space, and UI as Render. Docker Desktop is not currently installed on the Mac, so container verification remains pending.
+The reported build failure, `failed to read dockerfile: open Dockerfile: no such file or directory`, occurs because a manual Render service defaults to the repository root while this Dockerfile is in `Prototype/`. Fix the existing service rather than creating a Blueprint:
+
+1. Open **Render Dashboard → your Web Service → Settings → Build & Deploy**. Set **Root Directory** to `Prototype` (no leading slash), **Dockerfile Path** to `./Dockerfile`, and **Docker Build Context Directory** to `.`. Render resolves the Dockerfile and build context relative to the Root Directory. Select **Docker** as the runtime. The Dockerfile's `CMD` starts the app; no custom Docker command is needed.
+2. Set the service plan to **Free** and **Health Check Path** to `/api/health`. Use GitHub repo `pactaccount/MomentFlow`, branch `main`. Render changes to root directory can prompt you to update relative build fields; confirm the values above.
+3. Under **Environment**, add `HF_SPACE_ID=pactaccount/momentflow-siglip2`, `PUBLIC_DEPLOYMENT=1`, `DATA_DIR=/data`, and secret `HF_TOKEN=<your token>`. `ASR_MODEL=base.en` is optional because it is the default. Do not set `PORT`; Render provides it.
+4. In the Hugging Face Space's **Files** tab, replace its root `app.py` with the corrected `Prototype/hf_zerogpu_space/app.py`. Wait for **Running**. From `Prototype/`, run `python3 verify_hf_space.py` once. It checks the pinned model and makes one text and one image embedding request.
+5. In Render, choose **Manual Deploy → Deploy latest commit**. If the build fails again, read the first error after `load build definition`; if startup fails, inspect runtime logs. Open the Render URL, upload a short public-demo video, wait for **Ready**, and search for a visible event.
+
+A Render **Static Site** can serve only the browser assets. This product needs its Python API, upload processing, indexing worker, SQLite database, OCR, ffmpeg, and private Hugging Face token. Use a Web Service for the complete product.
 
 ## What is verified and what is still uncertain?
 
-Local unit tests, JavaScript syntax, Compose configuration, and the web UI served through FastAPI have passed. The responsive library, filter, search layout, upload dialog, and browser-compatible playback were checked with temporary test data. Live SigLIP inference has **not** passed because the Space has no app file. Container and Render tests are pending. Render Free's 512 MB RAM and 0.1 CPU may not be enough for video decoding, OCR, and `base.en` transcription together. If the first real deployment exhausts memory, keep the features intact and move the worker to a larger instance or a tested external speech service; do not claim that the free deployment is production-ready before measuring it.
+Local unit tests, JavaScript syntax, Compose configuration, and the web UI served through FastAPI have passed. The responsive library, filter, search layout, upload dialog, and browser-compatible playback were checked with temporary test data. The first live Space verification reached `/health` but received no output; the corrected Space file still needs uploading and retesting. Container and Render runtime tests are pending. Render Free's 512 MB RAM and 0.1 CPU may not be enough for video decoding, OCR, and `base.en` transcription together. If the first real deployment exhausts memory, keep the features intact and move the worker to a larger instance or a tested external speech service; do not claim that the free deployment is production-ready before measuring it.
 
 Render Free storage is ephemeral: videos and SQLite rows can disappear on restart or redeploy, which the user accepted for this demo. ZeroGPU has shared queues and usage quotas, so it is not an always-ready dedicated inference server.
 
-Official references: [Hugging Face Space visibility](https://huggingface.co/docs/hub/spaces-overview), [upload files in the Hub UI](https://huggingface.co/docs/hub/repositories-getting-started), [Space README configuration](https://huggingface.co/docs/hub/spaces-config-reference), [ZeroGPU](https://huggingface.co/docs/hub/spaces-zerogpu), [Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens), [Render environment variables](https://render.com/docs/configure-environment-variables), [Render Blueprint secrets](https://render.com/docs/blueprint-spec), [Render Free limits](https://render.com/docs/free).
+Official references: [Hugging Face Space visibility](https://huggingface.co/docs/hub/spaces-overview), [upload files in the Hub UI](https://huggingface.co/docs/hub/repositories-getting-started), [Space README configuration](https://huggingface.co/docs/hub/spaces-config-reference), [ZeroGPU](https://huggingface.co/docs/hub/spaces-zerogpu), [Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens), [Gradio API endpoints](https://www.gradio.app/docs/gradio/api), [Render monorepo settings](https://render.com/docs/monorepo-support), [Render environment variables](https://render.com/docs/configure-environment-variables), [Render Free limits](https://render.com/docs/free).

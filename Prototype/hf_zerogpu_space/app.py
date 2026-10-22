@@ -26,12 +26,12 @@ def normalize(vector):
     return (array / np.maximum(np.linalg.norm(array, axis=-1, keepdims=True), 1e-12)).tolist()
 
 
-def health():
+def health() -> str:
     return json.dumps({"model": MODEL_ID, "revision": MODEL_REVISION})
 
 
 @spaces.GPU(duration=60)
-def embed_text(text: str):
+def embed_text(text: str) -> str:
     if not 1 <= len(text) <= 300:
         raise ValueError("Text must contain 1–300 characters")
     inputs = processor(text=[text], padding="max_length", max_length=64, truncation=True, return_tensors="pt").to("cuda")
@@ -42,7 +42,7 @@ def embed_text(text: str):
 
 
 @spaces.GPU(duration=120)
-def embed_images(images_json: str):
+def embed_images(images_json: str) -> str:
     items = json.loads(images_json)
     if not isinstance(items, list) or not 1 <= len(items) <= 8:
         raise ValueError("Send 1–8 base64 PNG images")

@@ -25,10 +25,10 @@ For **local sandbox testing**, edit the already-created, Git-ignored [`Prototype
 
 ## Sandbox first
 
-1. The Hugging Face Space must be **Running** with the three files from `hf_zerogpu_space/` at its root and **ZeroGPU** selected in its Hardware settings. The starter page does not run our model.
+1. The Hugging Face Space must be **Running** with the three files from `hf_zerogpu_space/` at its root and **ZeroGPU** selected in its Hardware settings. The corrected `app.py` must be uploaded to the Space; its older version exposes endpoints with no outputs.
 2. Keep `HF_TOKEN` in `Prototype/.env`. Keep the file private.
 3. Install and start Docker Desktop if you want the container sandbox. From `Prototype/`, run `docker compose up --build -d`, then open `http://127.0.0.1:7860`. There is no sign-in.
 4. Upload one short video you can demo. Wait for **Ready**, then test a visible event, a spoken phrase, and text shown on screen. Check `docker compose logs --tail=100 product` if indexing fails. The sandbox uses the same Dockerfile, model Space, worker, ranking code, and UI as Render. Its bind-mounted `runtime/` lasts across local restarts; Render Free's `/data` does not.
 5. Run `python3 -m unittest discover -s . -p 'test_*.py' -q` and `node --check static/app.js`. Use [`evaluate.py`](evaluate.py) with a labeled timestamp manifest for Recall@K metrics; see [evaluation](EVALUATION.md).
 
-The app has **not** yet passed a live Space call or a Render Free memory test. Render Free offers only 512 MB RAM and 0.1 CPU, so full video indexing with `base.en` may exceed its limits. We will test the unchanged pipeline on Render before claiming it is deployment ready; see [deployment steps](RENDER_DEPLOYMENT.md).
+The app has reached the Space's `/health` endpoint, but live embedding verification is pending the corrected Space `app.py` upload. Render Free memory testing is also pending. Its 512 MB RAM and 0.1 CPU may be insufficient for full video indexing with `base.en`; see [deployment steps](RENDER_DEPLOYMENT.md).
