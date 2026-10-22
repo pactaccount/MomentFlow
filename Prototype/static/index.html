@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#102c37">
   <title>MomentFlow · Video knowledge, findable</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link id="app-style" rel="stylesheet" href="/static/style.css">
+  <script>
+    if (location.protocol === 'file:') document.getElementById('app-style').href = 'style.css';
+  </script>
 </head>
 <body>
   <div id="launch-screen" class="launch-screen" hidden>
@@ -76,6 +79,10 @@
       <p id="upload-status" class="message" role="status"></p>
     </form>
   </dialog>
-  <script src="/static/app.js"></script>
+  <script>
+    const appScript = document.createElement('script');
+    appScript.src = location.protocol === 'file:' ? 'app.js' : '/static/app.js';
+    document.body.appendChild(appScript);
+  </script>
 </body>
 </html>
