@@ -41,8 +41,9 @@ function renderLibrary() {
   });
   const container = $('videos');
   if (!videos.length) {
-    container.innerHTML = `<div class="empty-state"><span class="empty-icon" aria-hidden="true">▦</span><strong>Your library is ready</strong><p>Upload a recording to start finding visual events, speech, and text on screen.</p><button class="primary" id="empty-upload" type="button">＋ Upload video</button></div>`;
+    container.innerHTML = `<div class="empty-state"><span class="empty-icon" aria-hidden="true">▦</span><strong>Your library is ready</strong><p>Upload a recording or load our original nine-second sample. After it is Ready, search for “red car”.</p><button class="primary" id="empty-upload" type="button">＋ Upload video</button> <button class="subtle-button" id="load-demo" type="button">Load sample video</button><p id="demo-status" class="message" role="status"></p></div>`;
     $('empty-upload').addEventListener('click', () => $('upload-dialog').showModal());
+    $('load-demo').addEventListener('click', loadDemoSample);
     return;
   }
   if (!shown.length) {
@@ -76,6 +77,25 @@ function renderLibrary() {
   }).join('');
   container.querySelectorAll('.watch-video').forEach(button => button.addEventListener('click', () => openVideo(button.dataset.id, 0)));
   container.querySelectorAll('.delete-video').forEach(button => button.addEventListener('click', () => removeVideo(button.dataset.id)));
+}
+async function loadDemoSample() {
+  const button = $('load-demo');
+  const status = $('demo-status');
+  button.disabled = true;
+  status.textContent = 'Loading sample video…';
+  try {
+    const asset = await fetch('/static/demo-sample.mp4');
+    if (!asset.ok) throw new Error('Sample video is unavailable');
+    const file = new File([await asset.blob()], 'momentflow-original-demo.mp4', {type:'video/mp4'});
+    const form = new FormData();
+    form.append('file', file);
+    const result = await request('/api/upload', {method:'POST', body:form});
+    status.textContent = result.status === 'already_uploaded' ? 'Sample is already in the library.' : 'Sample queued. Indexing may take a minute.';
+    await refreshVideos();
+  } catch (error) {
+    status.textContent = error.message;
+    button.disabled = false;
+  }
 }
 async function refreshVideos() {
   const result = await request('/api/videos');
