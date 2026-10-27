@@ -9,3 +9,11 @@ The MomentFlow source code is licensed under [Apache License 2.0](LICENSE). Down
 ## Résumé evidence
 
 [Résumé evidence and verification](docs/RESUME_EVIDENCE.md) records the use case, engineering approach, test status, measured results, limits, and safe résumé wording.
+
+## Empirical Evaluation (IEEE Format)
+
+See the full [IEEE Evaluation Report](docs/IEEE_EVALUATION_REPORT.md) for complete mathematical formulations, benchmark protocols, and results:
+- **MSR-VTT 1k Held-Out Subset**: **90.0% Recall@1** (vs. 70.0% first-frame baseline), **95.0% Recall@5**, **0.925 MRR@10**.
+- **Warm Search Latency**: **25.0 ms** dense vector search, **59.0 ms** tri-modal rank fusion.
+- **Action Localization**: 12.5% Segment R@1 on Ball Sports fine-grained movement benchmark.
+- **Live Deployment**: Verified operational at [momentflow.onrender.com](https://momentflow.onrender.com/).
