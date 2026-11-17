@@ -21,7 +21,24 @@ from PIL import Image
 sys.path.insert(0, os.path.abspath("Prototype"))
 from apple_encoder import AppleMobileClipEncoder, normalize
 from apple_grounder import AppleFastVLMVerifier
-from media_tools import sampled_frames
+
+def sampled_frames(path, interval=1.0, max_duration=600.0):
+    cap = cv2.VideoCapture(str(path))
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        step = max(1, int(round(fps * interval)))
+        curr = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret or (curr / fps) > max_duration:
+                break
+            if curr % step == 0:
+                stamp = round(curr / fps, 2)
+                yield stamp, Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            curr += 1
+    finally:
+        cap.release()
 
 def compute_tiou(p_s, p_e, g_s, g_e):
     inter = max(0.0, min(p_e, g_e) - max(p_s, g_s))
@@ -148,7 +165,7 @@ def run_benchmarks():
         }
         print(f"YouCook2 Val R@1 (0.3): {results['youcook2_validation']['recall_03']:.1f}% | mIoU: {results['youcook2_validation']['miou']:.1f}%")
 
-    out_file = "Prototype/runtime/full_evaluation_report.json"
+    out_file = "docs/full_evaluation_report.json"
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
     with open(out_file, "w") as f:
         json.dump(results, f, indent=2)

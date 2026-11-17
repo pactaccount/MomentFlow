@@ -1,0 +1,42 @@
+{
+  "msrvtt": {
+    "video_count": 100,
+    "recall_1": 61.0,
+    "recall_5": 87.0,
+    "recall_10": 93.0,
+    "median_rank": 1.0,
+    "mean_rank": 3.71,
+    "pos_sim_mean": 0.20138296484947205,
+    "neg_sim_mean": 0.042023807764053345,
+    "throughput_fps": 78.14500112907545,
+    "query_qps": 116.45698829030783
+  },
+  "charades": {
+    "video_count": 15,
+    "query_count": 45,
+    "recall_03": 40.0,
+    "recall_05": 22.22222222222222,
+    "recall_07": 8.88888888888889,
+    "miou": 24.066899810832048,
+    "avg_latency": 0.6470490776209368
+  },
+  "youcook2": {
+    "video_count": 9,
+    "step_count": 35,
+    "recall_03": 42.857142857142854,
+    "recall_05": 11.428571428571429,
+    "recall_07": 2.857142857142857,
+    "miou": 23.56663071804069,
+    "avg_latency": 0.6415129215390022
+  },
+  "youcook2_validation": {
+    "subset": "validation",
+    "video_count": 12,
+    "step_count": 48,
+    "recall_03": 35.41666666666667,
+    "recall_05": 22.916666666666664,
+    "recall_07": 10.416666666666668,
+    "miou": 23.960192045688846,
+    "avg_latency": 0.6291024107158592
+  }
+}
