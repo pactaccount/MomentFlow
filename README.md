@@ -3,7 +3,6 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Models](https://img.shields.io/badge/Models-Apple_MobileCLIP_|_FastVLM-black.svg)](https://github.com/apple/ml-mobileclip)
-[![Deployment](https://img.shields.io/badge/Deploy-Kaggle_GPU_+_Render_Free-success.svg)](docs/EXACT_KAGGLE_RENDER_DEPLOYMENT_GUIDE.md)
 
 **MomentFlow** is an ultra-fast, zero-cost video temporal action grounding and moment retrieval engine powered by an enterprise **Apple 2-Model vision-language architecture**:
 
@@ -39,42 +38,6 @@ flowchart TD
 
 ---
 
-## Clean Repository Structure
-
-The repository is strictly organized into single-responsibility modules:
-
-```
-MomentFlow/
-├── Prototype/                         # Core Application Engine
-│   ├── apple_encoder.py               # Model 1: Apple MobileCLIP-B (OpenCLIP FP16/MPS/CUDA)
-│   ├── apple_grounder.py              # Model 2: Apple FastVLM-0.5B (Keyframe Verifier)
-│   ├── product_service.py             # 2-Stage Grounding Coordinator
-│   ├── search_core.py                 # Vector Math, Normalization & SQLite Store
-│   ├── media_tools.py                 # OpenCV Uniform Sampling & Video Probing
-│   ├── main.py                        # Full-Stack FastAPI Server (Web UI + APIs)
-│   ├── worker.py                      # Durable Background Indexing Worker
-│   ├── render_gateway.py              # Lightweight Render Proxy Gateway (<65 MB RAM)
-│   ├── kaggle_deploy.py               # Standalone Kaggle GPU Production Server
-│   ├── kaggle_deployment.ipynb        # Turnkey Kaggle GPU Notebook (Tesla T4 FP16)
-│   ├── requirements.txt               # Full Local / GPU Dependencies
-│   ├── requirements-render.txt        # Minimal Render Web Dependencies (<70 MB RAM)
-│   └── static/                        # Interactive Video Player Web UI
-│       ├── index.html
-│       ├── app.js
-│       └── style.css
-├── benchmarks/                        # Empirical Evaluation Suite
-│   └── evaluate_all.py                # Multi-dataset benchmark (MSR-VTT, Charades, YouCook2)
-├── docs/                              # Technical Reports & Deployment Blueprints
-│   ├── APPLE_EVALUATION_AND_DEPLOYMENT_REPORT.md # Empirical Evaluation across 3 benchmarks
-│   └── EXACT_KAGGLE_RENDER_DEPLOYMENT_GUIDE.md   # Step-by-Step Render + Kaggle Deployment
-├── render.yaml                        # 1-Click Render Infrastructure-as-Code Blueprint
-├── Dockerfile                         # Containerized Local / Production Deployment
-├── LICENSE                            # Apache 2.0 Open Source License
-└── README.md
-```
-
----
-
 ## Empirical Benchmark Performance
 
 All metrics measured on real `.mp4` video files using Apple Silicon MPS / Nvidia CUDA FP16:
@@ -85,39 +48,6 @@ All metrics measured on real `.mp4` video files using Apple Silicon MPS / Nvidia
 | **Charades-STA** | Multi-Action Benchmark | 15 Videos / 45 Queries | **R@1 ($t\text{IoU} \ge 0.3$)** | **40.0%** | 0.65s / query |
 | **YouCook2** | Official Validation Split | 12 Videos / 48 Steps | **R@1 ($t\text{IoU} \ge 0.3$)** | **35.4%** | 0.63s / query |
 | **Real-World Uncut** | 5.5 min Continuous Tutorial | 1 Video / 18 Queries | **Absent Rejection** | **75.0%** | 0.61s / query |
-
-*Detailed experimental breakdown and Apple ML literature comparisons available in [docs/APPLE_EVALUATION_AND_DEPLOYMENT_REPORT.md](docs/APPLE_EVALUATION_AND_DEPLOYMENT_REPORT.md).*
-
----
-
-## Free Production Deployment (Render + Kaggle Hybrid)
-
-Deploy the system **100% free** without paid servers or credit cards:
-
-```
-[ User Browser / Mobile ]
-         │
-         ▼  (HTTPS: Permanent Domain)
-[ Render Free Web Service ]  ───> Hosts Web UI + Proxy Gateway (< 65 MB RAM, 0% crash risk)
-         │
-         ▼  (Encrypted Cloudflare Tunnel: https://*.trycloudflare.com)
-[ Kaggle Headless Server ]  ────> Hosts Apple MobileCLIP-B + FastVLM-0.5B (Tesla T4 GPU, 2.6 GB VRAM)
-```
-
-1. **Deploy GPU Backend on Kaggle (Free)**:
-   - Create a Kaggle notebook with **GPU T4 x2** and **Internet: On**.
-   - Copy or upload [`Prototype/kaggle_deployment.ipynb`](Prototype/kaggle_deployment.ipynb).
-   - Click **Save Version $\rightarrow$ Save & Run All (Commit)**. *(Runs headlessly in the background for up to 12 hours).*
-   - Copy the logged public Cloudflare URL (e.g. `https://rapidly-xxx.trycloudflare.com`).
-
-2. **Deploy Web UI on Render (Free)**:
-   - Create a free Web Service on [Render.com](https://render.com) pointing to this repository.
-   - Build Command: `pip install -r Prototype/requirements-render.txt`
-   - Start Command: `uvicorn Prototype.render_gateway:app --host 0.0.0.0 --port $PORT`
-   - Env Variable: `KAGGLE_BACKEND_URL` = `https://rapidly-xxx.trycloudflare.com`.
-   - Your permanent app is live at `https://your-service.onrender.com`.
-
-*Read the step-by-step walkthrough in [docs/EXACT_KAGGLE_RENDER_DEPLOYMENT_GUIDE.md](docs/EXACT_KAGGLE_RENDER_DEPLOYMENT_GUIDE.md).*
 
 ---
 
