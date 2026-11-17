@@ -27,7 +27,6 @@
   const replayBtn = $('replay-btn');
   const otherMoments = $('other-moments');
   const momentsList = $('moments-list');
-  const statusText = $('status-text');
 
   // Format seconds to mm:ss
   function formatTime(sec) {
@@ -219,23 +218,4 @@
       loadingState.hidden = true;
     }
   });
-
-  // Background health check
-  async function checkHealth() {
-    try {
-      const res = await fetch('/api/health');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.kaggle_gpu_status === 'connected') {
-          statusText.textContent = 'AI Ready';
-        } else if (data.status === 'healthy') {
-          statusText.textContent = 'Ready';
-        }
-      }
-    } catch {
-      statusText.textContent = 'Ready';
-    }
-  }
-
-  checkHealth();
 })();

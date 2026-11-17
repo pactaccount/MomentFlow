@@ -1,4 +1,8 @@
 /* Apple Design System Tokens */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --bg-color: #fbfbfd;
@@ -10,11 +14,9 @@
   --border-focus: #0071e3;
   --apple-blue: #0071e3;
   --apple-blue-hover: #0077ed;
-  --apple-green: #34c759;
   --apple-gray-bg: #f5f5f7;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.08);
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 24px;
@@ -39,7 +41,7 @@ body {
   flex-direction: column;
 }
 
-/* Navigation Bar */
+/* Minimal Navigation Bar */
 .nav-bar {
   position: sticky;
   top: 0;
@@ -59,85 +61,47 @@ body {
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.brand-title {
   color: var(--text-primary);
   font-weight: 600;
   font-size: 17px;
   letter-spacing: -0.015em;
 }
 
-.brand-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--apple-blue);
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  background: var(--apple-gray-bg);
-  padding: 4px 12px;
-  border-radius: var(--radius-pill);
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--apple-green);
-}
-
 /* Page Container */
 .page-container {
   width: 100%;
-  max-width: 820px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 56px 20px 80px;
   flex: 1;
 }
 
 /* Hero Section */
 .hero-section {
   text-align: center;
-  margin-bottom: 40px;
-}
-
-.hero-eyebrow {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--apple-blue);
-  margin-bottom: 10px;
+  margin-bottom: 36px;
 }
 
 .hero-title {
-  font-size: clamp(32px, 5vw, 44px);
+  font-size: clamp(28px, 4.5vw, 40px);
   font-weight: 600;
   letter-spacing: -0.025em;
-  line-height: 1.15;
+  line-height: 1.2;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .hero-subtitle {
-  font-size: clamp(16px, 2.5vw, 19px);
+  font-size: clamp(15px, 2.2vw, 18px);
   font-weight: 400;
   line-height: 1.45;
   color: var(--text-secondary);
-  max-width: 600px;
+  max-width: 540px;
   margin: 0 auto;
 }
 
@@ -147,25 +111,16 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md);
-  padding: 36px;
+  padding: 32px;
   transition: var(--transition);
 }
 
 .input-group {
-  margin-bottom: 26px;
+  margin-bottom: 20px;
 }
 
 .input-group:last-of-type {
   margin-bottom: 0;
-}
-
-.section-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-  letter-spacing: -0.01em;
 }
 
 /* Drag & Drop Upload Zone */
@@ -196,9 +151,9 @@ body {
 }
 
 .upload-icon-circle {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: var(--shadow-sm);
@@ -325,12 +280,12 @@ body {
 .apple-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   background: var(--apple-blue);
   color: #ffffff;
   border: none;
   border-radius: var(--radius-pill);
-  padding: 10px 20px;
+  padding: 10px 22px;
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -351,12 +306,11 @@ body {
 .secondary-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: var(--apple-gray-bg);
+  background: #ffffff;
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  padding: 8px 16px;
+  padding: 7px 16px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -365,20 +319,20 @@ body {
 }
 
 .secondary-button:hover {
-  background: #ebebee;
+  background: #f0f0f2;
 }
 
 /* Loading State */
 .state-container {
   text-align: center;
-  padding: 44px 20px 20px;
+  padding: 36px 20px 10px;
 }
 
 .apple-spinner {
-  width: 32px;
-  height: 32px;
-  margin: 0 auto 16px;
-  border: 3px solid rgba(0, 113, 227, 0.18);
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 12px;
+  border: 2.5px solid rgba(0, 113, 227, 0.18);
   border-top-color: var(--apple-blue);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -389,21 +343,15 @@ body {
 }
 
 .state-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.state-sub {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
 /* Results Section */
 .result-section {
-  margin-top: 36px;
-  padding-top: 32px;
+  margin-top: 30px;
+  padding-top: 26px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -415,7 +363,7 @@ body {
   overflow: hidden;
   aspect-ratio: 16 / 9;
   box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .player-wrapper video {
@@ -428,7 +376,7 @@ body {
 .moment-card {
   background: var(--apple-gray-bg);
   border-radius: var(--radius-md);
-  padding: 22px 24px;
+  padding: 20px;
 }
 
 .moment-header {
@@ -437,41 +385,19 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 16px;
-}
-
-.action-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #1b873f;
-  background: #e8f7ee;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  margin-bottom: 4px;
+  margin-bottom: 12px;
 }
 
 .moment-time {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   color: var(--text-primary);
 }
 
 .moment-body {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
-  padding-top: 14px;
-}
-
-.scene-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  padding-top: 12px;
 }
 
 .scene-description {
@@ -482,8 +408,8 @@ body {
 
 /* Other Moments List */
 .other-moments {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -491,7 +417,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .moments-pills {
@@ -504,8 +430,8 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  padding: 6px 14px;
-  font-size: 13px;
+  padding: 5px 12px;
+  font-size: 12px;
   color: var(--text-primary);
   font-weight: 500;
   cursor: pointer;
@@ -518,30 +444,21 @@ body {
   border-color: var(--apple-blue);
 }
 
-/* Footer */
-.app-footer {
-  text-align: center;
-  margin-top: 40px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .page-container {
     padding: 32px 16px 60px;
   }
   .app-card {
-    padding: 24px 18px;
+    padding: 20px 16px;
   }
   .query-box {
     flex-direction: column;
     align-items: stretch;
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 10px;
   }
   .apple-button {
-    justify-content: center;
-    margin-top: 8px;
+    margin-top: 6px;
   }
 }
