@@ -35,6 +35,33 @@ def probe_video(path: Path, max_duration: float = 1800, max_pixels: int = 3840 *
     }
 
 
+def prepare_playback(source: Path, destination: Path) -> None:
+    """Create an MP4 that browsers can play without changing the indexed source."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(".mp4.part")
+    temporary.unlink(missing_ok=True)
+    command = [
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+        "-i", str(source),
+        "-map", "0:v:0", "-map", "0:a:0?", "-sn", "-dn",
+        "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+        "-movflags", "+faststart", "-f", "mp4", str(temporary),
+    ]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True,
+                                timeout=900, check=False)
+        if result.returncode or not temporary.is_file() or temporary.stat().st_size == 0:
+            detail = result.stderr.strip().splitlines()[-1:] or ["Unknown media error"]
+            raise ValueError(f"Could not prepare video for browser playback: {detail[0]}")
+        temporary.replace(destination)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Browser playback conversion timed out") from exc
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def scene_stamps(path: Path, max_stamps: int = 300) -> list[float]:
     """Add scene boundaries without allowing one video to create an unbounded index."""
     from scenedetect import ContentDetector, detect

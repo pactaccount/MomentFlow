@@ -1,4 +1,4 @@
-"""Authenticated API for the hosted video knowledge search product."""
+"""API for the active local video moment search product."""
 from __future__ import annotations
 
 import hashlib
@@ -14,40 +14,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from media_tools import probe_video
-from product_service import ProductService
-from telemetry import HTTP_REQUESTS, HTTP_SECONDS, SEARCH_RESULTS, start_metrics
+from product_service import PIPELINE_VERSION, ProductService
 
 HERE = Path(__file__).resolve().parent
 DATA_DIR = Path(os.getenv("DATA_DIR", str(HERE / "runtime"))).resolve()
 PUBLIC_DEPLOYMENT = os.getenv("PUBLIC_DEPLOYMENT") == "1"
 service = ProductService(DATA_DIR)
 
-
-@asynccontextmanager
-async def lifespan(_app):
-    start_metrics()
-    yield
-
-
-app = FastAPI(title="MomentFlow", docs_url=None if PUBLIC_DEPLOYMENT else "/docs", lifespan=lifespan)
+app = FastAPI(title="MomentFlow", docs_url=None if PUBLIC_DEPLOYMENT else "/docs")
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
-
-
-@app.middleware("http")
-async def record_request(request: Request, call_next):
-    started = time.perf_counter()
-    try:
-        response = await call_next(request)
-        status = response.status_code
-        return response
-    except Exception:
-        status = 500
-        raise
-    finally:
-        route = request.scope.get("route")
-        path = getattr(route, "path", "unmatched")
-        HTTP_REQUESTS.labels(path, request.method, str(status)).inc()
-        HTTP_SECONDS.labels(path, request.method).observe(time.perf_counter() - started)
 
 
 class Feedback(BaseModel):
@@ -71,7 +46,7 @@ def home():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "pipeline": "multimodal-v1", "indexed_frames": service.frame_count()}
+    return {"status": "ok", "pipeline": PIPELINE_VERSION, "indexed_frames": service.frame_count()}
 
 
 @app.get("/api/videos")
@@ -136,13 +111,12 @@ def delete_video(video_id: str, request: Request):
 
 
 @app.get("/api/search")
-def search(q: str, limit: int = 8):
+def search(q: str, limit: int = 8, deep: bool = False):
     if not 1 <= len(q.strip()) <= 300 or not 1 <= limit <= 20:
         raise HTTPException(400, "Invalid query or limit")
     try:
         results = service.search(q, limit)
-        SEARCH_RESULTS.observe(len(results))
-        return {"query": q, "results": results}
+        return {"query": q, "results": results, "complete": True}
     except RuntimeError as exc:
         raise HTTPException(503, str(exc)) from exc
 
@@ -164,7 +138,7 @@ def media(video_id: str):
     path = service.video_path(video_id)
     if path is None or not path.is_file():
         raise HTTPException(404, "Video not found")
-    return FileResponse(path)
+    return FileResponse(path, media_type="video/mp4")
 
 
 @app.get("/api/thumbnail/{video_id}")

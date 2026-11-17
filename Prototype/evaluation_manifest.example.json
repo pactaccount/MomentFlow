@@ -1,7 +1,0 @@
-[
-  {
-    "query": "a person riding a bicycle",
-    "modality": "visual",
-    "matches": [{"filename": "your-demo-video.mp4", "timestamp_sec": 12.0}]
-  }
-]

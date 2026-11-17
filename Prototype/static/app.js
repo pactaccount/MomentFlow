@@ -122,10 +122,15 @@ function renderResults() {
     <button class="result-row ${selectedHit === index ? 'active' : ''}" data-index="${index}" type="button">
       ${thumbnail(hit.video_id,'result-thumb')}
       <span class="result-copy"><span class="result-title">${escapeHtml(hit.filename)}</span>
-        <span class="result-meta"><span class="source-tag">${escapeHtml(hit.source)}</span><span>${fmtTime(hit.timestamp_sec)}</span><span>· ${hit.sources?.length || 1} signal${(hit.sources?.length || 1) === 1 ? '' : 's'}</span></span>
+        <span class="result-meta">
+          <span class="source-tag">${escapeHtml(hit.source)}</span>
+          <span>${escapeHtml(hit.interval_formatted || fmtTime(hit.timestamp_sec))}</span>
+          ${hit.duration_sec ? `<span>(${hit.duration_sec}s action)</span>` : ''}
+          <span>· ${hit.sources?.length || 1} signal${(hit.sources?.length || 1) === 1 ? '' : 's'}</span>
+        </span>
         <span class="result-evidence">${escapeHtml(hit.evidence)}</span>
       </span>
-    </button>`).join('') : `<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>${currentQuery ? 'No matching moment yet' : 'Ready to search'}</strong><p>${currentQuery ? 'Try a different object, action, spoken phrase, or words on screen.' : 'Enter a query above to search indexed videos by scene, speech, and screen text.'}</p></div>`;
+    </button>`).join('') : `<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>${currentQuery ? 'No matching moment found' : 'Ready to search'}</strong><p>${currentQuery ? 'MomentFlow found no visual, speech, or text moments matching “' + escapeHtml(currentQuery) + '” above the calibrated confidence gate.' : 'Enter a query above to search indexed videos by scene, speech, and screen text.'}</p></div>`;
   $('results').querySelectorAll('.result-row').forEach(button => button.addEventListener('click', () => showHit(Number(button.dataset.index))));
 }
 function showHit(index) {
@@ -133,23 +138,48 @@ function showHit(index) {
   if (!hit) return;
   selectedHit = index;
   renderResults();
+  const seekTarget = (hit.seek_sec !== undefined && Number.isFinite(hit.seek_sec)) ? hit.seek_sec : hit.timestamp_sec;
+  const startSec = (hit.start_sec !== undefined && Number.isFinite(hit.start_sec)) ? hit.start_sec : hit.timestamp_sec;
+  const endSec = (hit.end_sec !== undefined && Number.isFinite(hit.end_sec)) ? hit.end_sec : (startSec + 3);
+
   $('viewer').innerHTML = `<video id="moment-player" controls preload="metadata" src="${escapeHtml(hit.video_url)}"></video>
-    <div class="viewer-info"><p class="eyebrow">MATCHED MOMENT · ${fmtTime(hit.timestamp_sec)}</p><h2>${escapeHtml(hit.filename)}</h2>
+    <div class="viewer-info">
+      <div class="interval-banner">
+        <span class="interval-badge">Action Interval: <strong>${escapeHtml(hit.interval_formatted || (fmtTime(startSec) + ' – ' + fmtTime(endSec)))}</strong> (${hit.duration_sec || Math.round(endSec - startSec)}s)</span>
+        <span id="playback-status-pill" class="status-pill pre-action">Seeking to ${fmtTime(seekTarget)}</span>
+      </div>
+      <p class="eyebrow">${hit.source === 'visual' ? 'VERIFIED VIDEO ACTION' : 'MATCHED MOMENT'} · ${escapeHtml(hit.interval_formatted || fmtTime(hit.timestamp_sec))}</p>
+      <h2>${escapeHtml(hit.filename)}</h2>
       <p><span class="source-tag">${escapeHtml(hit.source)}</span> ${escapeHtml(hit.evidence)}</p>
       <div class="viewer-actions"><button id="share-button" class="subtle-button" type="button">↗ Copy moment link</button><button id="feedback-button" class="subtle-button" type="button">Flag wrong moment</button></div>
       <p id="viewer-message" class="message" role="status"></p></div>`;
   const player = $('moment-player');
-  player.addEventListener('loadedmetadata', () => { player.currentTime = hit.timestamp_sec; }, {once:true});
+  player.addEventListener('loadedmetadata', () => { player.currentTime = seekTarget; }, {once:true});
+  player.addEventListener('timeupdate', () => {
+    const pill = $('playback-status-pill');
+    if (!pill) return;
+    const cur = player.currentTime;
+    if (cur >= startSec && cur <= endSec) {
+      pill.textContent = '● Action playing';
+      pill.className = 'status-pill active-action';
+    } else if (cur < startSec) {
+      pill.textContent = `Seeking onset (${fmtTime(cur)} / ${fmtTime(startSec)})`;
+      pill.className = 'status-pill pre-action';
+    } else {
+      pill.textContent = 'Action completed';
+      pill.className = 'status-pill post-action';
+    }
+  });
   $('share-button').addEventListener('click', async () => {
     const link = new URL(location.origin + location.pathname);
     link.searchParams.set('video',hit.video_id);
-    link.searchParams.set('t',String(hit.timestamp_sec));
+    link.searchParams.set('t',String(seekTarget));
     try { await navigator.clipboard.writeText(link.toString()); $('viewer-message').textContent = 'Moment link copied.'; }
     catch { $('viewer-message').textContent = link.toString(); }
   });
   $('feedback-button').addEventListener('click', async () => {
     try {
-      await request('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:hit.video_id,query:currentQuery,timestamp_sec:hit.timestamp_sec,value:'wrong_moment'})});
+      await request('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:hit.video_id,query:currentQuery,timestamp_sec:seekTarget,value:'wrong_moment'})});
       $('viewer-message').textContent = 'Thanks — this result was flagged for review.';
     } catch(error) { $('viewer-message').textContent = error.message; }
   });
@@ -170,22 +200,30 @@ async function removeVideo(id) {
   try { await request('/api/videos/'+encodeURIComponent(id),{method:'DELETE'}); await refreshVideos(); }
   catch(error) { alert(error.message); }
 }
-async function search(query) {
+async function search(query, deep=false) {
   currentQuery = query;
   showView('search');
   $('result-heading').textContent = `Results for “${query}”`;
-  $('search-status').textContent = 'Searching the video library…';
+  $('search-status').textContent = deep ? 'Checking the full video library…' : 'Searching likely moments…';
   currentHits = [];
   selectedHit = null;
   $('results').innerHTML = '<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>Finding moments</strong><p>Checking visual, speech, and screen-text signals.</p></div>';
   $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">▶</span><strong>Finding moments</strong></div>';
   try {
-    const data = await request('/api/search?q='+encodeURIComponent(query));
+    const data = await request('/api/search?q='+encodeURIComponent(query)+(deep?'&deep=true':''));
     currentHits = data.results;
-    $('search-status').textContent = `${currentHits.length} candidate moment${currentHits.length === 1 ? '' : 's'}`;
+    $('search-status').textContent = `${currentHits.length} suggested moment${currentHits.length === 1 ? '' : 's'}${data.complete ? '' : ' in the quick search'}`;
     renderResults();
     if (currentHits.length) showHit(0);
-    else $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⌕</span><strong>No moment selected</strong><p>Try another query to find a matching timestamp.</p></div>';
+    else if (!data.complete) {
+      $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⌕</span><strong>No match yet</strong><p>The quick search checked the most likely segments.</p></div>';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'primary';
+      button.textContent = 'Search the full video';
+      button.addEventListener('click', () => search(query, true));
+      $('viewer').querySelector('.viewer-placeholder').appendChild(button);
+    } else $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⌕</span><strong>No match found</strong><p>Try a different description.</p></div>';
   } catch(error) {
     $('search-status').textContent = error.message;
     renderResults();

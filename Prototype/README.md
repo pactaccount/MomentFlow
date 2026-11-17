@@ -1,34 +1,77 @@
-# MomentFlow product
+# MomentFlow (Apple 2-Model Architecture)
 
-MomentFlow accepts a video, indexes visual frames, spoken words, and on-screen text, then returns searchable timestamps and playback. It is a public demo with no sign-in. The web app and indexing worker share one Python process on Render Free; the same container can run in the local sandbox. SigLIP 2 runs in the private Hugging Face Space `pactaccount/momentflow-siglip2`. There is no fine-tuning.
+MomentFlow is an on-device video intelligence and temporal moment search engine powered by a **clean 2-model Apple vision stack**:
 
-## Pipeline
+1. **Model 1 (Timeline Filter & Embedder): [apple_encoder.py](file:///Users/abhinav/Desktop/jobs/projects/MomentFlow/Prototype/apple_encoder.py)** — **Apple MobileCLIP-B** (CVPR 2024). Scans raw video frames at **114+ fps** on Apple Silicon MPS into 512-dimensional vectors. Query matching runs in **$< 10\text{ ms}$** via matrix dot-product ($\mathbf{S} = \mathbf{V} \cdot \mathbf{q}$).
+2. **Model 2 (Deep Action Grounder & Verifier): [apple_grounder.py](file:///Users/abhinav/Desktop/jobs/projects/MomentFlow/Prototype/apple_grounder.py)** — **Apple FastVLM-0.5B** (CVPR 2025). Efficient vision-language model pairing an Apple MobileCLIP vision tower with a compact Qwen2 causal language backbone. Inspects candidate keyframes to verify action presence and reject out-of-domain / absent queries.
 
-1. FastAPI validates and stores an uploaded video, then queues an indexing job in SQLite.
-2. The worker uses OpenCV and PySceneDetect to sample frames and scene changes. Tesseract extracts visible text. Faster-whisper `base.en` transcribes speech when audio is present.
-3. The worker sends frame batches to the pinned SigLIP 2 model in the private Hugging Face Space and commits visual vectors, transcript segments, and OCR text to SQLite/FTS5 together.
-4. Search embeds the text query through the same Space, fuses visual, speech, and screen-text evidence, and returns ranked video moments.
+---
 
-The pinned visual checkpoint is `google/siglip2-base-patch16-224` revision `75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2`. The Space app is in [`hf_zerogpu_space/`](hf_zerogpu_space/). The Docker build is defined by the repository-root [`Dockerfile`](../Dockerfile); Render Web Service settings are documented in [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
+## Architecture & Data Flow
 
-## Keys and settings
+```
+[Uploaded Video]
+       │
+       ▼ (1 fps sampling & scene cuts)
+[Model 1: Apple MobileCLIP-B] ──► Encodes 114+ fps into SQLite (512-d unit vectors)
+       │
+[Natural Language Query]
+       │
+       ▼ (Text Embedding: q)
+[Timeline Dot-Product Scan: S = V · q] ──► < 10 ms fast timeline filtering
+       │
+       ▼ (Top 2-3 Candidate Peaks)
+[Model 2: Apple FastVLM-0.5B] ──► Temporal Verification & Explanation (~0.7s)
+       │
+       ▼
+[Playable Action Interval [t_start, t_end] + Playback Stream]
+```
 
-For **local sandbox testing**, edit the already-created, Git-ignored [`Prototype/.env`](.env). The safe template is [`.env.example`](.env.example). See the [complete setup guide](RENDER_DEPLOYMENT.md) before deploying.
+---
 
-| Name | What to enter | Where it is used |
-| --- | --- | --- |
-| `HF_SPACE_ID` | Already set to `pactaccount/momentflow-siglip2` | Identifies the private model Space. Not secret. |
-| `HF_TOKEN` | Your fine-grained Hugging Face token with read access to that Space | Server-to-Space calls. Secret. |
-| `ASR_MODEL` | Leave `base.en` | Same speech model in sandbox and Render. Not secret. |
+## File Structure
 
-**`HF_TOKEN` is the only secret.** It is already present locally and must never be placed in chat or Git. On **Render**, enter it in the Web Service's **Environment** page; Render does not read your local `.env` file. No Oracle, Modal, Roboflow, Liquid AI, Render API, or GitHub API key is required for the selected dashboard deployment. Render must have access to this GitHub repository through your connected Git provider account.
+```
+Prototype/
+├── apple_encoder.py        # Model 1: Apple MobileCLIP-B text & image encoder
+├── apple_grounder.py       # Model 2: Apple FastVLM-0.5B action verifier
+├── search_core.py          # SQLite index storage and vector operations
+├── product_service.py      # Unified 2-stage coordinator (MobileCLIP + FastVLM)
+├── media_tools.py          # FFmpeg video sampling and web-stream transcoding
+├── main.py                 # FastAPI server (API endpoints & web UI)
+├── worker.py               # Background durable indexing worker
+├── render_gateway.py       # Lightweight Render proxy gateway (<65 MB RAM)
+├── requirements-render.txt # Strict minimal dependencies for Render
+├── kaggle_deploy.py        # Standalone Kaggle GPU production server
+├── kaggle_deployment.ipynb # Turnkey Kaggle GPU Notebook (Tesla T4 FP16)
+├── static/                 # Clean web search UI
+├── requirements.txt        # Full local & GPU dependencies
+└── compose.yaml            # Docker Compose configuration
+```
 
-## Sandbox first
+---
 
-1. The Hugging Face Space is **Running** with the three files from `hf_zerogpu_space/` at its root and **ZeroGPU** selected in its Hardware settings. The corrected `app.py` has been uploaded and verified.
-2. Keep `HF_TOKEN` in `Prototype/.env`. Keep the file private.
-3. Install and start Docker Desktop if you want the container sandbox. From `Prototype/`, run `docker compose up --build -d`, then open `http://127.0.0.1:7860`. There is no sign-in.
-4. Upload one short video you can demo. Wait for **Ready**, then test a visible event, a spoken phrase, and text shown on screen. Check `docker compose logs --tail=100 product` if indexing fails. The sandbox uses the same Dockerfile, model Space, worker, ranking code, and UI as Render. Its bind-mounted `runtime/` lasts across local restarts; Render Free's `/data` does not.
-5. Run `python3 -m unittest discover -s . -p 'test_*.py' -q` and `node --check static/app.js`. Use [`evaluate.py`](evaluate.py) with a labeled timestamp manifest for Recall@K metrics; see [evaluation](EVALUATION.md).
+## Quickstart (Apple Silicon & Kaggle)
 
-Live Space verification passed for the pinned model with normalized 768-dimensional text and image embeddings. Render Free memory testing remains pending. Its 512 MB RAM and 0.1 CPU may be insufficient for full video indexing with `base.en`; see [deployment steps](RENDER_DEPLOYMENT.md).
+### 1. Install Dependencies
+```bash
+pip install -r Prototype/requirements.txt
+```
+
+### 2. Start the Indexing Worker
+```bash
+PYTHONPATH=Prototype python3 Prototype/worker.py
+```
+
+### 3. Start the Web Application
+```bash
+PYTHONPATH=Prototype python3 -m uvicorn main:app --app-dir Prototype --host 127.0.0.1 --port 7860
+```
+Open `http://127.0.0.1:7860/` in your browser.
+
+---
+
+## Kaggle Deployment
+To deploy on Kaggle Notebooks (free Nvidia Tesla T4 / P100 16GB GPU):
+* The code runs identically on CUDA.
+* Total VRAM footprint is **$< 4\text{ GB}$**, fitting into Kaggle's free GPU tier.

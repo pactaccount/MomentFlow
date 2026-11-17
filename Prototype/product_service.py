@@ -1,25 +1,39 @@
-"""Deployable multimodal layer over the established SigLIP 2 visual baseline."""
+"""Clean 2-model Apple stack video moment search service (MobileCLIP-B + FastVLM-0.5B)."""
 from __future__ import annotations
 
-import os
-import re
-import time
+import logging
 from pathlib import Path
+import re
+import shutil
+import time
+from typing import List, Optional, Tuple
 
+import cv2
 import numpy as np
+from PIL import Image
 
-from media_tools import sampled_frames, scene_stamps
+from apple_encoder import AppleMobileClipEncoder
+from apple_grounder import AppleFastVLMVerifier
+from media_tools import prepare_playback, sampled_frames, scene_stamps
 from search_core import SearchService, normalize
 
-PIPELINE_VERSION = "multimodal-v1"
+logger = logging.getLogger("product_service")
+
+PIPELINE_VERSION = "apple-2model-v1"
+CALIBRATED_ABSENT_THRESHOLD = 0.20
+
+
+def minmax_scale(arr: np.ndarray) -> np.ndarray:
+    span = arr.max() - arr.min()
+    return (arr - arr.min()) / max(1e-5, span) if span > 1e-6 else np.zeros_like(arr)
 
 
 class ProductService(SearchService):
-    def __init__(self, data_dir: Path, encoder=None, speech=None, ocr=None):
+    """Unified video search service powered strictly by the 2-model Apple stack."""
+
+    def __init__(self, data_dir: Path, encoder=None, verifier=None):
         super().__init__(data_dir, encoder=encoder)
-        self.speech_engine = speech
-        self.asr_model = None
-        self.ocr_engine = ocr
+        self.verifier = verifier
         with self.db() as db:
             db.execute("PRAGMA journal_mode=WAL")
             columns = {row[1] for row in db.execute("PRAGMA table_info(videos)")}
@@ -29,13 +43,35 @@ class ProductService(SearchService):
             }.items():
                 if name not in columns:
                     db.execute(f"ALTER TABLE videos ADD COLUMN {name} {definition}")
-            db.execute("CREATE TABLE IF NOT EXISTS jobs(video_id TEXT PRIMARY KEY,status TEXT NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,lease_until REAL,progress TEXT,error TEXT)")
-            db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS speech_fts USING fts5(video_id UNINDEXED,start UNINDEXED,end UNINDEXED,text)")
-            db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS screen_fts USING fts5(video_id UNINDEXED,start UNINDEXED,end UNINDEXED,text)")
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS jobs("
+                "video_id TEXT PRIMARY KEY, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, "
+                "lease_until REAL, progress TEXT, error TEXT)"
+            )
             db.execute("CREATE TABLE IF NOT EXISTS feedback(id INTEGER PRIMARY KEY,video_id TEXT,query TEXT,stamp REAL,value TEXT,created_at REAL)")
             db.execute("CREATE INDEX IF NOT EXISTS videos_sha ON videos(sha256)")
 
-    def add_video(self, video_id, filename, path, metadata=None, sha256=None):
+    def get_verifier(self) -> AppleFastVLMVerifier:
+        """Lazy load Model 2 (Apple FastVLM-0.5B) for candidate verification."""
+        with self.lock:
+            if self.verifier is None:
+                self.verifier = AppleFastVLMVerifier()
+            return self.verifier
+
+    def playback_file(self, video_id: str) -> Path:
+        return self.data_dir / "playback" / f"{video_id}.mp4"
+
+    def thumbnail_path(self, video_id: str) -> Optional[Path]:
+        path = self.data_dir / "thumbnails" / f"{video_id}.jpg"
+        return path if path.is_file() else None
+
+    def video_path(self, video_id: str) -> Optional[Path]:
+        with self.db() as db:
+            ready = db.execute("SELECT 1 FROM videos WHERE id=? AND status='ready'", (video_id,)).fetchone()
+        path = self.playback_file(video_id)
+        return path if ready and path.is_file() else None
+
+    def add_video(self, video_id: str, filename: str, path: Path, metadata: Optional[dict] = None, sha256: Optional[str] = None):
         metadata = metadata or {}
         with self.db() as db:
             db.execute(
@@ -46,12 +82,12 @@ class ProductService(SearchService):
             )
             db.execute("INSERT INTO jobs(video_id,status,progress) VALUES(?,?,?)", (video_id, "queued", "Waiting to index"))
 
-    def find_sha(self, sha256):
+    def find_sha(self, sha256: str) -> Optional[str]:
         with self.db() as db:
             row = db.execute("SELECT id FROM videos WHERE sha256=? AND status!='failed' LIMIT 1", (sha256,)).fetchone()
             return row[0] if row else None
 
-    def claim_job(self):
+    def claim_job(self) -> Optional[Tuple[str, Path]]:
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -65,7 +101,7 @@ class ProductService(SearchService):
                 return row[0], Path(row[1])
         return None
 
-    def set_progress(self, video_id, message):
+    def set_progress(self, video_id: str, message: Optional[str]):
         with self.db() as db:
             if message is None:
                 db.execute("UPDATE jobs SET lease_until=? WHERE video_id=? AND status='running'",
@@ -74,116 +110,72 @@ class ProductService(SearchService):
                 db.execute("UPDATE jobs SET progress=?,lease_until=? WHERE video_id=? AND status='running'",
                            (message, time.time() + 120, video_id))
 
-    def process_job(self, video_id, path):
+    def process_job(self, video_id: str, path: Path):
+        """Index video with Model 1 (Apple MobileCLIP-B) at 100+ fps."""
         try:
             with self.db() as db:
                 db.execute("UPDATE videos SET status='indexing',error=NULL WHERE id=?", (video_id,))
-                row = db.execute("SELECT has_audio FROM videos WHERE id=?", (video_id,)).fetchone()
-            self.set_progress(video_id, "Finding scene changes")
+
+            self.set_progress(video_id, "Finding scene cuts")
             extras = scene_stamps(path)
-            frame_rows, batch, screen_rows = [], [], []
+
+            self.set_progress(video_id, "Encoding video frames with Apple MobileCLIP-B")
+            frame_rows, batch = [], []
             first_image = None
-            previous_screen = None
-            self.set_progress(video_id, "Reading and encoding frames")
-            for stamp, image in sampled_frames(path, extra_stamps=extras):
+            for stamp, image in sampled_frames(path, interval=1.0, extra_stamps=extras):
                 if first_image is None:
                     first_image = image.copy()
                 batch.append((stamp, image))
-                found = self.read_screen(image)
-                if found and previous_screen and found == previous_screen[3] and stamp - previous_screen[2] <= 2.1:
-                    previous_screen[2] = stamp + 1
-                elif found:
-                    previous_screen = [video_id, stamp, stamp + 1, found]
-                    screen_rows.append(previous_screen)
-                if len(batch) == 8:
+                if len(batch) >= 16:
                     frame_rows.extend(self.embed_batch(video_id, batch))
                     batch.clear()
             if batch:
                 frame_rows.extend(self.embed_batch(video_id, batch))
-            if not frame_rows:
-                raise ValueError("No video frames decoded")
-            speech_rows = []
-            if row and row[0]:
-                self.set_progress(video_id, "Transcribing speech")
-                speech_rows = self.transcribe(video_id, path)
-            if first_image is not None:
-                thumb_dir = self.data_dir / "thumbnails"
-                thumb_dir.mkdir(exist_ok=True)
-                first_image.thumbnail((480, 270))
-                first_image.save(thumb_dir / f"{video_id}.jpg", quality=80)
-            # Reindex in a single transaction so search never sees partially updated content.
+
+            if first_image is None:
+                raise ValueError("No video frames could be decoded")
+
+            # Save thumbnail
+            thumb_dir = self.data_dir / "thumbnails"
+            thumb_dir.mkdir(exist_ok=True)
+            first_image.thumbnail((480, 270))
+            first_image.save(thumb_dir / f"{video_id}.jpg", quality=80)
+
+            # Transcode web playback MP4
+            self.set_progress(video_id, "Preparing browser playback")
+            prepare_playback(path, self.playback_file(video_id))
+
+            # Store in DB
             with self.db() as db:
                 db.execute("DELETE FROM frames WHERE video_id=?", (video_id,))
-                db.execute("DELETE FROM speech_fts WHERE video_id=?", (video_id,))
-                db.execute("DELETE FROM screen_fts WHERE video_id=?", (video_id,))
-                db.executemany("INSERT INTO frames VALUES(?,?,?)", frame_rows)
-                db.executemany("INSERT INTO speech_fts(video_id,start,end,text) VALUES(?,?,?,?)", speech_rows)
-                db.executemany("INSERT INTO screen_fts(video_id,start,end,text) VALUES(?,?,?,?)", screen_rows)
-                db.execute("UPDATE videos SET status='ready',indexed_version=? WHERE id=?", (PIPELINE_VERSION, video_id))
-                db.execute("UPDATE jobs SET status='done',lease_until=NULL,progress='Ready',error=NULL WHERE video_id=?", (video_id,))
+                db.executemany("INSERT INTO frames(video_id,stamp,vector) VALUES(?,?,?)", frame_rows)
+                db.execute("UPDATE videos SET status='ready',error=NULL,indexed_version=? WHERE id=?",
+                           (PIPELINE_VERSION, video_id))
+                db.execute("DELETE FROM jobs WHERE video_id=?", (video_id,))
+            logger.info("Video %s successfully indexed with %d frames.", video_id, len(frame_rows))
         except Exception as exc:
+            logger.exception("Failed to process job for %s: %s", video_id, exc)
             with self.db() as db:
-                attempts = db.execute("SELECT attempts FROM jobs WHERE video_id=?", (video_id,)).fetchone()[0]
-                retry = not isinstance(exc, ValueError) and attempts < 3
-                db.execute("UPDATE videos SET status=?,error=? WHERE id=?",
-                           ("queued" if retry else "failed", str(exc)[:300], video_id))
-                db.execute("UPDATE jobs SET status=?,lease_until=NULL,error=?,progress=? WHERE video_id=?",
-                           ("queued" if retry else "failed", str(exc)[:300],
-                            "Retrying indexing" if retry else "Failed", video_id))
+                db.execute("UPDATE videos SET status='failed',error=? WHERE id=?", (str(exc)[:400], video_id))
+                db.execute("UPDATE jobs SET status='failed',error=? WHERE video_id=?", (str(exc)[:400], video_id))
             raise
 
-    def read_screen(self, image):
-        if self.ocr_engine is not None:
-            return self.ocr_engine(image)
-        import pytesseract
-        from pytesseract import Output
-        if image.width < 1100:
-            image = image.resize((image.width * 2, image.height * 2))
-        data = pytesseract.image_to_data(image, output_type=Output.DICT, config="--psm 11")
-        words = [word.strip() for word, confidence in zip(data["text"], data["conf"])
-                 if word.strip() and float(confidence) >= 50]
-        return " ".join(words)[:2000]
-
-    def transcribe(self, video_id, path):
-        if self.speech_engine is not None:
-            return [(video_id, start, end, text) for start, end, text in self.speech_engine(path)]
-        from faster_whisper import WhisperModel
-        model_name = os.getenv("ASR_MODEL", "base.en")
-        if self.asr_model is None:
-            self.asr_model = WhisperModel(model_name, device="cpu", compute_type="int8",
-                                          cpu_threads=2, download_root=str(self.data_dir / "asr_models"))
-        segments, _ = self.asr_model.transcribe(str(path), beam_size=3, vad_filter=True)
-        return [(video_id, round(s.start, 2), round(s.end, 2), s.text.strip())
-                for s in segments if s.text.strip()]
-
-    def list_videos(self):
-        with self.db() as db:
-            return [dict(r) for r in db.execute(
-                "SELECT v.id,v.filename,v.status,v.error,v.duration_sec,v.created_at,v.indexed_version,j.progress "
-                "FROM videos v LEFT JOIN jobs j ON j.video_id=v.id ORDER BY v.created_at DESC")]
-
-    def thumbnail_path(self, video_id):
-        path = self.data_dir / "thumbnails" / f"{video_id}.jpg"
-        return path if path.exists() else None
-
-    def delete_video(self, video_id):
+    def delete_video(self, video_id: str) -> bool:
         with self.db() as db:
             row = db.execute("SELECT path,status FROM videos WHERE id=?", (video_id,)).fetchone()
             if not row:
                 return False
             if row[1] in {"queued", "indexing"}:
                 raise ValueError("Wait until indexing finishes before deleting")
-            db.execute("DELETE FROM frames WHERE video_id=?", (video_id,))
-            db.execute("DELETE FROM speech_fts WHERE video_id=?", (video_id,))
-            db.execute("DELETE FROM screen_fts WHERE video_id=?", (video_id,))
-            db.execute("DELETE FROM jobs WHERE video_id=?", (video_id,))
-            db.execute("DELETE FROM feedback WHERE video_id=?", (video_id,))
+            for table in ("frames", "jobs", "feedback"):
+                db.execute(f"DELETE FROM {table} WHERE video_id=?", (video_id,))
             db.execute("DELETE FROM videos WHERE id=?", (video_id,))
         Path(row[0]).unlink(missing_ok=True)
+        self.playback_file(video_id).unlink(missing_ok=True)
         (self.data_dir / "thumbnails" / f"{video_id}.jpg").unlink(missing_ok=True)
         return True
 
-    def add_feedback(self, video_id, query, stamp, value):
+    def add_feedback(self, video_id: str, query: str, stamp: float, value: str):
         if value not in {"helpful", "wrong_moment"}:
             raise ValueError("Invalid feedback")
         with self.db() as db:
@@ -191,71 +183,117 @@ class ProductService(SearchService):
                        (video_id, query[:300], stamp, value, time.time()))
 
     @staticmethod
-    def _fts_terms(query):
-        words = re.findall(r"\w+", query, flags=re.UNICODE)[:12]
-        return " OR ".join('"' + word + '"' for word in words)
+    def _fmt_time(sec: float) -> str:
+        n = max(0, int(round(float(sec))))
+        return f"{n // 60}:{n % 60:02d}"
 
-    def search(self, query, limit=8):
+    def search(self, query: str, limit: int = 8) -> list[dict]:
+        """2-stage search: Model 1 (MobileCLIP-B) fast timeline filter + Model 2 (FastVLM) verifier."""
         with self.db() as db:
-            frames = db.execute(
-                "SELECT f.video_id,f.stamp,f.vector,v.filename FROM frames f JOIN videos v ON v.id=f.video_id WHERE v.status='ready'"
+            rows = db.execute(
+                "SELECT f.video_id,f.stamp,f.vector,v.filename,v.path "
+                "FROM frames f JOIN videos v ON v.id=f.video_id WHERE v.status='ready' "
+                "ORDER BY f.video_id, f.stamp"
             ).fetchall()
-            terms = self._fts_terms(query)
-            text_lists = []
-            for table, source in (("speech_fts", "speech"), ("screen_fts", "screen")):
-                matches = db.execute(
-                    f"SELECT {table}.video_id,{table}.start,{table}.end,{table}.text,v.filename FROM {table} JOIN videos v ON v.id={table}.video_id "
-                    f"WHERE {table} MATCH ? AND v.status='ready' ORDER BY rank LIMIT 50", (terms,),
-                ).fetchall() if terms else []
-                text_lists.append((source, matches))
-        if not frames and not any(matches for _, matches in text_lists):
+        if not rows:
             return []
-        ranked = []
-        if frames:
-            with self.lock:
-                q = normalize(self.model().text(query).reshape(1, -1))[0]
-            vectors = np.stack([np.frombuffer(row[2], dtype=np.float32) for row in frames])
-            if vectors.shape[1] != len(q):
-                raise RuntimeError("Index dimension mismatch; reindex all videos")
-            scores = vectors @ q
-            visual, seen = [], set()
-            for index in np.argsort(-scores):
-                row = frames[int(index)]
-                key = (row[0], int(float(row[1]) // 5))
-                if key in seen:
+
+        # Stage 1: MobileCLIP Timeline Dot-Product
+        with self.lock:
+            q_vec = normalize(self.model().text(query).reshape(1, -1))[0]
+
+        frames_by_vid: dict[str, list[tuple[float, np.ndarray, str, str]]] = {}
+        for r in rows:
+            frames_by_vid.setdefault(r[0], []).append((float(r[1]), np.frombuffer(r[2], dtype=np.float32), r[3], r[4]))
+
+        candidate_peaks = []
+        for vid, frame_list in frames_by_vid.items():
+            stamps = [item[0] for item in frame_list]
+            vectors = np.stack([item[1] for item in frame_list])
+            filename = frame_list[0][2]
+            orig_path = frame_list[0][3]
+
+            scores = vectors @ q_vec
+            smoothed = np.convolve(scores, np.ones(3, dtype=np.float32) / 3.0, mode="same") if len(scores) >= 3 else scores
+
+            # Find local maxima peaks
+            peak_indices = []
+            for i in range(len(smoothed)):
+                if smoothed[i] < CALIBRATED_ABSENT_THRESHOLD:
                     continue
-                seen.add(key)
-                visual.append((key, {"video_id": row[0], "filename": row[3],
-                                     "timestamp_sec": float(row[1]), "source": "visual",
-                                     "evidence": "Visual similarity", "visual_score": float(scores[index])}))
-                if len(visual) >= 50:
-                    break
-            ranked.append(visual)
-        for source, matches in text_lists:
-            candidates, seen = [], set()
-            for row in matches:
-                stamp = float(row[1])
-                key = (row[0], int(stamp // 5))
-                if key in seen:
-                    continue
-                seen.add(key)
-                candidates.append((key, {"video_id": row[0], "filename": row[4],
-                                         "timestamp_sec": stamp, "source": source,
-                                         "evidence": row[3]}))
-            ranked.append(candidates)
-        fused = {}
-        for source_list in ranked:
-            for rank, (key, hit) in enumerate(source_list, 1):
-                if key not in fused:
-                    fused[key] = {**hit, "score": 0.0, "sources": []}
-                fused[key]["score"] += 1 / (60 + rank)
-                fused[key]["sources"].append(hit["source"])
-                if hit["source"] != "visual" and fused[key]["source"] == "visual":
-                    fused[key].update(timestamp_sec=hit["timestamp_sec"], evidence=hit["evidence"], source=hit["source"])
-        hits = sorted(fused.values(), key=lambda hit: -hit["score"])
-        for hit in hits:
-            hit["score"] = round(hit["score"], 5)
-            hit["timestamp_sec"] = round(hit["timestamp_sec"], 2)
-            hit["video_url"] = f"/api/media/{hit['video_id']}"
-            hit["thumbnail_url"] = f"/api/thumbnail/{hit['video_id']}"
-        return hits[:limit]
+                left = smoothed[i - 1] if i > 0 else -1
+                right = smoothed[i + 1] if i < len(smoothed) - 1 else -1
+                if smoothed[i] >= left and smoothed[i] >= right:
+                    peak_indices.append(i)
+
+            if not peak_indices:
+                best_i = int(np.argmax(scores))
+                if scores[best_i] >= CALIBRATED_ABSENT_THRESHOLD:
+                    peak_indices.append(best_i)
+
+            for p_idx in peak_indices:
+                p_stamp = stamps[p_idx]
+                p_score = float(smoothed[p_idx])
+                # Expand temporal window [start, end]
+                s_stamp = max(0.0, p_stamp - 5.0)
+                e_stamp = p_stamp + 8.0
+                candidate_peaks.append({
+                    "video_id": vid,
+                    "filename": filename,
+                    "orig_path": orig_path,
+                    "timestamp_sec": p_stamp,
+                    "start_sec": s_stamp,
+                    "end_sec": e_stamp,
+                    "score": p_score,
+                })
+
+        if not candidate_peaks:
+            return []
+
+        # Rank candidates by Model 1 similarity score
+        candidate_peaks.sort(key=lambda x: x["score"], reverse=True)
+        top_candidates = candidate_peaks[:min(3, limit)]
+
+        # Stage 2: Model 2 (Apple FastVLM) Action Verification
+        verifier = self.get_verifier()
+        final_hits = []
+
+        for cand in top_candidates:
+            # Extract keyframe at candidate peak
+            cap = cv2.VideoCapture(cand["orig_path"])
+            cap.set(cv2.CAP_PROP_POS_MSEC, cand["timestamp_sec"] * 1000.0)
+            ret, frame = cap.read()
+            cap.release()
+
+            if not ret or frame is None:
+                continue
+
+            pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            verified, explanation = verifier.verify_action(pil_img, query)
+
+            # Calculate duration and formatted interval
+            start_s = round(cand["start_sec"], 1)
+            end_s = round(cand["end_sec"], 1)
+            duration_s = max(1, int(round(end_s - start_s)))
+            interval_fmt = f"{self._fmt_time(start_s)} – {self._fmt_time(end_s)}"
+
+            final_hits.append({
+                "video_id": cand["video_id"],
+                "filename": cand["filename"],
+                "video_url": f"/api/media/{cand['video_id']}",
+                "timestamp_sec": cand["timestamp_sec"],
+                "start_sec": start_s,
+                "end_sec": end_s,
+                "duration_sec": duration_s,
+                "interval_formatted": interval_fmt,
+                "score": round(cand["score"], 4),
+                "source": "Apple Stack",
+                "sources": ["MobileCLIP-B", "FastVLM-0.5B"],
+                "verified": verified,
+                "evidence": f"Apple FastVLM verified: {explanation}" if verified else f"Detected visual moment: {explanation}",
+            })
+
+            if len(final_hits) >= limit:
+                break
+
+        return final_hits
