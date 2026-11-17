@@ -19,21 +19,21 @@ Given any natural language action query (e.g., *"sprinkling shredded cheese on p
 ```mermaid
 flowchart TD
     subgraph Ingestion ["1. Video Ingestion (1.0 fps Uniform Frame Sampling)"]
-        V[Uploaded Video] --> Probe[Probe Video & Transcode Web H.264 Playback]
-        V --> Frames[Sample Frames at 1.0 fps]
-        Frames --> M1[Model 1: Apple MobileCLIP-B<br/>FastViT Hybrid Vision Encoder]
-        M1 --> SQLite[(SQLite: Normalized 512-d Frame Vectors)]
+        V["Uploaded Video"] --> Probe["Probe Video & Transcode Web H.264 Playback"]
+        V --> Frames["Sample Frames at 1.0 fps"]
+        Frames --> M1["Model 1: Apple MobileCLIP-B<br/>FastViT Hybrid Vision Encoder"]
+        M1 --> SQLite[("SQLite: Normalized 512-d Frame Vectors")]
     end
 
     subgraph Grounding ["2. Temporal Scan & FastVLM Verification (< 0.65s Latency)"]
-        Q[User Query] --> M1_Txt[Model 1: Apple MobileCLIP-B Text Encoder]
+        Q["User Query"] --> M1_Txt["Model 1: Apple MobileCLIP-B Text Encoder"]
         M1_Txt --> DotProd["Cosine Similarity Dot-Product S = V · q<br/>(< 5 ms full timeline scan)"]
         SQLite --> DotProd
-        DotProd --> PeakPick[Temporal Candidate Peak Selector]
-        PeakPick --> M2[Model 2: Apple FastVLM-0.5B<br/>CVPR 2025 FastViTHD 144 Tokens]
+        DotProd --> PeakPick["Temporal Candidate Peak Selector"]
+        PeakPick --> M2["Model 2: Apple FastVLM-0.5B<br/>CVPR 2025 FastViTHD 144 Tokens"]
         M2 --> Decision{"Action Verified?"}
-        Decision -- "YES" --> UI[Stream Video at Action Interval [t_start, t_end] - HTTP 206]
-        Decision -- "NO" --> Reject[Calibrated Absent Query Rejection]
+        Decision -- "YES" --> UI["Stream Video at Action Interval (t_start, t_end) - HTTP 206"]
+        Decision -- "NO" --> Reject["Calibrated Absent Query Rejection"]
     end
 ```
 
