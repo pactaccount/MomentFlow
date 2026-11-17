@@ -1,12 +1,11 @@
 services:
   - type: web
-    name: momentflow-ui
+    name: momentflow
     env: python
     plan: free
     region: oregon
-    buildCommand: "pip install -r Prototype/requirements-render.txt"
-    startCommand: "uvicorn Prototype.render_gateway:app --host 0.0.0.0 --port $PORT"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: KAGGLE_BACKEND_URL
         sync: false
-
