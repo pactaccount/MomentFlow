@@ -1,382 +1,241 @@
-const $ = id => document.getElementById(id);
-const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const fmtTime = sec => {
-  const n = Math.max(0, Math.floor(Number(sec) || 0));
-  return n >= 3600
-    ? `${Math.floor(n/3600)}:${String(Math.floor(n%3600/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`
-    : `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`;
-};
-let videos = [], currentQuery = '', currentHits = [], selectedHit = null, refreshTimer = null;
+// MomentFlow - Apple Minimal UI Controller
+(function() {
+  const $ = id => document.getElementById(id);
 
-async function request(url, options = {}) {
-  const response = await fetch(url, options);
-  let data;
-  try { data = await response.json(); } catch { data = {}; }
-  if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
-  return data;
-}
-function showView(view) {
-  $('library-view').hidden = view !== 'library';
-  $('search-view').hidden = view !== 'search';
-  $('breadcrumb-current').textContent = view === 'library' ? 'Video library' : 'Moment search';
-  document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
-  if (view === 'search' && !currentQuery && !currentHits.length) renderResults();
-}
-function thumbnail(id, className, ready = true) {
-  return (ready && id)
-    ? `<img class="${className}" src="/api/thumbnail/${encodeURIComponent(id)}" alt="" loading="lazy">`
-    : `<span class="${className}" aria-hidden="true" style="display:grid;place-items:center;background:#1e293b;color:#38bdf8;font-size:18px;border-radius:6px;">▶</span>`;
-}
-function statusLabel(status) {
-  return ({ready:'Ready',queued:'Queued',indexing:'Indexing',failed:'Failed'})[status] || 'Unknown';
-}
-function renderLibrary() {
-  const needle = $('filter-input').value.trim().toLowerCase();
-  const status = $('status-filter').value;
-  const shown = videos.filter(video => {
-    const nameMatches = video.filename.toLowerCase().includes(needle);
-    const statusMatches = status === 'all' || (status === 'processing'
-      ? ['queued','indexing'].includes(video.status) : video.status === status);
-    return nameMatches && statusMatches;
-  });
-  const container = $('videos');
-  if (!videos.length) {
-    container.innerHTML = `<div class="empty-state"><span class="empty-icon" aria-hidden="true">▦</span><strong>Your library is ready</strong><p>Upload a recording or load our original nine-second sample. After it is Ready, search for “red car”.</p><button class="primary" id="empty-upload" type="button">＋ Upload video</button> <button class="subtle-button" id="load-demo" type="button">Load sample video</button><p id="demo-status" class="message" role="status"></p></div>`;
-    $('empty-upload').addEventListener('click', () => $('upload-dialog').showModal());
-    $('load-demo').addEventListener('click', loadDemoSample);
-    return;
+  // State
+  let selectedVideoFile = null;
+  let currentVideoUrl = null;
+  let activeMoments = [];
+  let currentMomentIndex = 0;
+
+  // DOM Elements
+  const videoInput = $('video-input');
+  const dropZone = $('drop-zone');
+  const uploadPrompt = $('upload-prompt');
+  const fileChip = $('file-chip');
+  const chipFilename = $('chip-filename');
+  const chipDetails = $('chip-details');
+  const removeFileBtn = $('remove-file-btn');
+  const searchForm = $('search-form');
+  const queryInput = $('query-input');
+  const searchBtn = $('search-btn');
+  const loadingState = $('loading-state');
+  const resultSection = $('result-section');
+  const videoPlayer = $('video-player');
+  const momentTimestamp = $('moment-timestamp');
+  const momentExplanation = $('moment-explanation');
+  const replayBtn = $('replay-btn');
+  const otherMoments = $('other-moments');
+  const momentsList = $('moments-list');
+  const statusText = $('status-text');
+
+  // Format seconds to mm:ss
+  function formatTime(sec) {
+    const s = Math.max(0, Math.floor(Number(sec) || 0));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${m}:${String(rem).padStart(2, '0')}`;
   }
-  if (!shown.length) {
-    container.innerHTML = `<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>No recordings match</strong><p>Try another filename or processing status.</p><button class="subtle-button" id="clear-filters" type="button">Clear filters</button></div>`;
-    $('clear-filters').addEventListener('click', () => {
-      $('filter-input').value = '';
-      $('status-filter').value = 'all';
-      renderLibrary();
-    });
-    return;
+
+  // Format file size
+  function formatSize(bytes) {
+    if (!bytes) return '';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
   }
-  container.innerHTML = shown.map(video => {
-    const busy = ['queued','indexing'].includes(video.status);
-    const safeStatus = ['ready','queued','indexing','failed'].includes(video.status) ? video.status : 'unknown';
-    return `<div class="video-row">
-      <div class="video-main">${thumbnail(video.id,'video-thumb',video.status === 'ready')}
-        <div class="video-info"><div class="video-title" title="${escapeHtml(video.filename)}">${escapeHtml(video.filename)}</div>
-          <div class="video-meta">${video.created_at ? new Date(video.created_at*1000).toLocaleDateString() : 'Uploaded video'}</div>
-          ${busy ? `<div class="video-progress">${escapeHtml(video.progress || 'Preparing for search')}</div>` : ''}
-          ${video.error ? `<div class="video-error">${escapeHtml(video.error)}</div>` : ''}
-        </div>
-      </div>
-      <div class="status-cell"><span class="status-badge ${safeStatus}">${statusLabel(video.status)}</span></div>
-      <div class="duration-cell">${video.duration_sec ? fmtTime(video.duration_sec) : '—'}</div>
-      <div class="index-cell">${video.status === 'ready' ? 'Multimodal index' : busy ? 'Building index' : 'Unavailable'}</div>
-      <div class="row-actions">
-        ${video.status === 'ready' ? `<button class="text-button watch-video" data-id="${escapeHtml(video.id)}" type="button">Open</button>` : ''}
-        <button class="text-button danger delete-video" data-id="${escapeHtml(video.id)}" type="button" ${busy ? 'disabled title="Available after processing"' : ''}>Delete</button>
-      </div>
-    </div>`;
-  }).join('');
-  container.querySelectorAll('.watch-video').forEach(button => button.addEventListener('click', () => openVideo(button.dataset.id, 0)));
-  container.querySelectorAll('.delete-video').forEach(button => button.addEventListener('click', () => removeVideo(button.dataset.id)));
-}
-async function loadDemoSample() {
-  const button = $('load-demo');
-  const status = $('demo-status');
-  button.disabled = true;
-  status.textContent = 'Loading sample video…';
-  try {
-    const asset = await fetch('/static/demo-sample.mp4');
-    if (!asset.ok) throw new Error('Sample video is unavailable');
-    const file = new File([await asset.blob()], 'momentflow-original-demo.mp4', {type:'video/mp4'});
-    const form = new FormData();
-    form.append('file', file);
-    const result = await request('/api/upload', {method:'POST', body:form});
-    status.textContent = result.status === 'already_uploaded' ? 'Sample is already in the library.' : 'Sample queued. Indexing may take a minute.';
-    await refreshVideos();
-  } catch (error) {
-    status.textContent = error.message;
-    button.disabled = false;
-  }
-}
-async function refreshVideos() {
-  const result = await request('/api/videos');
-  videos = result.videos;
-  $('count-all').textContent = videos.length;
-  $('count-ready').textContent = videos.filter(v => v.status === 'ready').length;
-  $('count-processing').textContent = videos.filter(v => ['queued','indexing'].includes(v.status)).length;
-  $('library-count').textContent = videos.length;
-  renderLibrary();
-  clearTimeout(refreshTimer);
-  if (videos.some(v => ['queued','indexing'].includes(v.status)))
-    refreshTimer = setTimeout(() => refreshVideos().catch(showError), 3000);
-}
-function showError(error) {
-  console.warn('Library status:', error.message);
-  if (!videos.length) {
-    const container = $('videos');
-    if (container) {
-      container.innerHTML = `<div class="empty-state">
-        <span class="empty-icon" aria-hidden="true">⚡</span>
-        <strong>Instant Video Grounding Ready</strong>
-        <p>Select your video and describe the moment above. Apple MobileCLIP-B + FastVLM-0.5B will find the exact clip.</p>
-      </div>`;
+
+  // Handle File Selection
+  function selectFile(file) {
+    if (!file) return;
+    selectedVideoFile = file;
+
+    if (currentVideoUrl) {
+      URL.revokeObjectURL(currentVideoUrl);
     }
-  }
-}
-function renderResults() {
-  $('results-count').textContent = currentHits.length;
-  $('results').innerHTML = currentHits.length ? currentHits.map((hit, index) => `
-    <button class="result-row ${selectedHit === index ? 'active' : ''}" data-index="${index}" type="button">
-      ${thumbnail(hit.video_id,'result-thumb')}
-      <span class="result-copy"><span class="result-title">${escapeHtml(hit.filename)}</span>
-        <span class="result-meta">
-          <span class="source-tag">${escapeHtml(hit.source)}</span>
-          <span>${escapeHtml(hit.interval_formatted || fmtTime(hit.timestamp_sec))}</span>
-          ${hit.duration_sec ? `<span>(${hit.duration_sec}s action)</span>` : ''}
-          <span>· ${hit.sources?.length || 1} signal${(hit.sources?.length || 1) === 1 ? '' : 's'}</span>
-        </span>
-        <span class="result-evidence">${escapeHtml(hit.evidence)}</span>
-      </span>
-    </button>`).join('') : `<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>${currentQuery ? 'No matching moment found' : 'Ready to search'}</strong><p>${currentQuery ? 'MomentFlow found no visual, speech, or text moments matching “' + escapeHtml(currentQuery) + '” above the calibrated confidence gate.' : 'Enter a query above to search indexed videos by scene, speech, and screen text.'}</p></div>`;
-  $('results').querySelectorAll('.result-row').forEach(button => button.addEventListener('click', () => showHit(Number(button.dataset.index))));
-}
-function showHit(index) {
-  const hit = currentHits[index];
-  if (!hit) return;
-  selectedHit = index;
-  renderResults();
-  const seekTarget = (hit.seek_sec !== undefined && Number.isFinite(hit.seek_sec)) ? hit.seek_sec : hit.timestamp_sec;
-  const startSec = (hit.start_sec !== undefined && Number.isFinite(hit.start_sec)) ? hit.start_sec : hit.timestamp_sec;
-  const endSec = (hit.end_sec !== undefined && Number.isFinite(hit.end_sec)) ? hit.end_sec : (startSec + 3);
+    currentVideoUrl = URL.createObjectURL(file);
 
-  $('viewer').innerHTML = `<video id="moment-player" controls preload="metadata" src="${escapeHtml(hit.video_url)}"></video>
-    <div class="viewer-info">
-      <div class="interval-banner">
-        <span class="interval-badge">Action Interval: <strong>${escapeHtml(hit.interval_formatted || (fmtTime(startSec) + ' – ' + fmtTime(endSec)))}</strong> (${hit.duration_sec || Math.round(endSec - startSec)}s)</span>
-        <span id="playback-status-pill" class="status-pill pre-action">Seeking to ${fmtTime(seekTarget)}</span>
-      </div>
-      <p class="eyebrow">${hit.source === 'visual' ? 'VERIFIED VIDEO ACTION' : 'MATCHED MOMENT'} · ${escapeHtml(hit.interval_formatted || fmtTime(hit.timestamp_sec))}</p>
-      <h2>${escapeHtml(hit.filename)}</h2>
-      <p><span class="source-tag">${escapeHtml(hit.source)}</span> ${escapeHtml(hit.evidence)}</p>
-      <div class="viewer-actions"><button id="share-button" class="subtle-button" type="button">↗ Copy moment link</button><button id="feedback-button" class="subtle-button" type="button">Flag wrong moment</button></div>
-      <p id="viewer-message" class="message" role="status"></p></div>`;
-  const player = $('moment-player');
-  player.addEventListener('loadedmetadata', () => { player.currentTime = seekTarget; }, {once:true});
-  player.addEventListener('timeupdate', () => {
-    const pill = $('playback-status-pill');
-    if (!pill) return;
-    const cur = player.currentTime;
-    if (cur >= startSec && cur <= endSec) {
-      pill.textContent = '● Action playing';
-      pill.className = 'status-pill active-action';
-    } else if (cur < startSec) {
-      pill.textContent = `Seeking onset (${fmtTime(cur)} / ${fmtTime(startSec)})`;
-      pill.className = 'status-pill pre-action';
-    } else {
-      pill.textContent = 'Action completed';
-      pill.className = 'status-pill post-action';
+    chipFilename.textContent = file.name;
+    chipDetails.textContent = formatSize(file.size);
+    uploadPrompt.hidden = true;
+    fileChip.hidden = false;
+
+    // Preload metadata to get duration
+    videoPlayer.src = currentVideoUrl;
+    videoPlayer.load();
+
+    queryInput.focus();
+  }
+
+  // Clear Selected File
+  function clearFile() {
+    selectedVideoFile = null;
+    if (currentVideoUrl) {
+      URL.revokeObjectURL(currentVideoUrl);
+      currentVideoUrl = null;
+    }
+    videoInput.value = '';
+    uploadPrompt.hidden = false;
+    fileChip.hidden = true;
+    resultSection.hidden = true;
+  }
+
+  // Drag and Drop Listeners
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      selectFile(files[0]);
     }
   });
-  $('share-button').addEventListener('click', async () => {
-    const link = new URL(location.origin + location.pathname);
-    link.searchParams.set('video',hit.video_id);
-    link.searchParams.set('t',String(seekTarget));
-    try { await navigator.clipboard.writeText(link.toString()); $('viewer-message').textContent = 'Moment link copied.'; }
-    catch { $('viewer-message').textContent = link.toString(); }
-  });
-  $('feedback-button').addEventListener('click', async () => {
-    try {
-      await request('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:hit.video_id,query:currentQuery,timestamp_sec:seekTarget,value:'wrong_moment'})});
-      $('viewer-message').textContent = 'Thanks — this result was flagged for review.';
-    } catch(error) { $('viewer-message').textContent = error.message; }
-  });
-}
-function openVideo(id, stamp) {
-  const video = videos.find(v => v.id === id);
-  if (!video || video.status !== 'ready') return;
-  currentQuery = '';
-  currentHits = [{video_id:id,filename:video.filename,timestamp_sec:stamp,source:'library',sources:['library'],evidence:'Selected from the video library',video_url:`/api/media/${encodeURIComponent(id)}`}];
-  $('result-heading').textContent = video.filename;
-  $('search-status').textContent = 'Playing from your library';
-  showView('search');
-  showHit(0);
-}
-async function removeVideo(id) {
-  const video = videos.find(v => v.id === id);
-  if (!confirm(`Delete "${video?.filename || 'video'}" and its search index?`)) return;
-  try { await request('/api/videos/'+encodeURIComponent(id),{method:'DELETE'}); await refreshVideos(); }
-  catch(error) { alert(error.message); }
-}
-async function search(query, deep=false) {
-  currentQuery = query;
-  showView('search');
-  $('result-heading').textContent = `Results for “${query}”`;
-  $('search-status').textContent = deep ? 'Checking the full video library…' : 'Searching likely moments…';
-  currentHits = [];
-  selectedHit = null;
-  $('results').innerHTML = '<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>Finding moments</strong><p>Checking visual, speech, and screen-text signals.</p></div>';
-  $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">▶</span><strong>Finding moments</strong></div>';
-  try {
-    const data = await request('/api/search?q='+encodeURIComponent(query)+(deep?'&deep=true':''));
-    currentHits = data.results;
-    $('search-status').textContent = `${currentHits.length} suggested moment${currentHits.length === 1 ? '' : 's'}${data.complete ? '' : ' in the quick search'}`;
-    renderResults();
-    if (currentHits.length) showHit(0);
-    else if (!data.complete) {
-      $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⌕</span><strong>No match yet</strong><p>The quick search checked the most likely segments.</p></div>';
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'primary';
-      button.textContent = 'Search the full video';
-      button.addEventListener('click', () => search(query, true));
-      $('viewer').querySelector('.viewer-placeholder').appendChild(button);
-    } else $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⌕</span><strong>No match found</strong><p>Try a different description.</p></div>';
-  } catch(error) {
-    $('search-status').textContent = error.message;
-    renderResults();
-    $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">!</span><strong>Search unavailable</strong><p>Check the model service and try again.</p></div>';
-  }
-}
-let currentVideoFile = null;
 
-async function runInstantMomentSearch(file, query) {
-  const instantStatus = $('instant-status');
-  const instantSubmitBtn = $('instant-submit-btn');
-
-  if (!file) {
-    if (instantStatus) instantStatus.textContent = 'Please choose a video file first.';
-    return;
-  }
-  if (!query.trim()) {
-    if (instantStatus) instantStatus.textContent = 'Please enter what moment you are looking for.';
-    return;
-  }
-
-  if (instantSubmitBtn) instantSubmitBtn.disabled = true;
-  if (instantStatus) instantStatus.textContent = '⚡ Scanning video with Apple MobileCLIP-B & FastVLM-0.5B on GPU…';
-
-  showView('search');
-  $('result-heading').textContent = `Looking for: “${query}”`;
-  $('search-status').textContent = 'Analyzing video frames and validating action on GPU…';
-  $('results').innerHTML = '<div class="empty-state"><span class="empty-icon" aria-hidden="true">⚡</span><strong>Analyzing video on GPU</strong><p>Scanning visual frames with MobileCLIP-B and verifying action with FastVLM-0.5B…</p></div>';
-  $('viewer').innerHTML = '<div class="viewer-placeholder"><span class="placeholder-play">⚡</span><strong>GPU Processing Active</strong><p>Analyzing keyframes, please wait a moment…</p></div>';
-
-  const videoBlobUrl = URL.createObjectURL(file);
-  const form = new FormData();
-  form.append('file', file);
-  form.append('query', query.trim());
-  form.append('sample_fps', '1.0');
-  form.append('top_k', '3');
-
-  try {
-    let res = await fetch('/extract_moments', { method: 'POST', body: form });
-    if (!res.ok && res.status === 404) {
-      res = await fetch('/api/extract_moments', { method: 'POST', body: form });
+  videoInput.addEventListener('change', () => {
+    if (videoInput.files.length > 0) {
+      selectFile(videoInput.files[0]);
     }
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Server error (${res.status})`);
+  });
+
+  removeFileBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    clearFile();
+  });
+
+  // Display a specific moment
+  function displayMoment(index) {
+    if (!activeMoments[index]) return;
+    currentMomentIndex = index;
+    const moment = activeMoments[index];
+
+    const startSec = Math.max(0, moment.start || 0);
+    const endSec = moment.end || (startSec + 4);
+    const duration = Math.max(1, Math.round(endSec - startSec));
+
+    momentTimestamp.textContent = `${formatTime(startSec)} – ${formatTime(endSec)} (${duration}s)`;
+
+    // Clean human-friendly description
+    let cleanText = moment.explanation || 'Action detected in this scene.';
+    // Remove technical artifacts if any
+    cleanText = cleanText.replace(/^(Answer:|Scene:|Observation:)\s*/i, '');
+    momentExplanation.textContent = cleanText;
+
+    // Jump player and play
+    videoPlayer.currentTime = startSec;
+    videoPlayer.play().catch(() => {});
+
+    // Highlight active pill if multiple
+    const pills = momentsList.querySelectorAll('.moment-pill-btn');
+    pills.forEach((p, idx) => p.classList.toggle('active', idx === index));
+  }
+
+  // Replay Button
+  replayBtn.addEventListener('click', () => {
+    if (activeMoments[currentMomentIndex]) {
+      videoPlayer.currentTime = activeMoments[currentMomentIndex].start || 0;
+      videoPlayer.play().catch(() => {});
     }
-    const data = await res.json();
-    const moments = data.moments || [];
-    if (!moments.length) {
-      $('search-status').textContent = `No matching moment found for “${query}”.`;
-      $('results').innerHTML = '<div class="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><strong>No match found</strong><p>Try describing the action with different words.</p></div>';
-      if (instantStatus) instantStatus.textContent = 'No moment found. Try another description.';
+  });
+
+  // Search Submission
+  searchForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const query = queryInput.value.trim();
+
+    if (!selectedVideoFile) {
+      alert('Please choose a video first.');
+      return;
+    }
+    if (!query) {
+      queryInput.focus();
       return;
     }
 
-    currentQuery = query;
-    currentHits = moments.map((m, idx) => ({
-      video_id: '',
-      filename: file.name,
-      timestamp_sec: m.peak || m.start,
-      seek_sec: m.start,
-      start_sec: m.start,
-      end_sec: m.end,
-      duration_sec: Math.max(1, Math.round(m.end - m.start)),
-      interval_formatted: `${fmtTime(m.start)} – ${fmtTime(m.end)}`,
-      source: m.verified ? 'VERIFIED ACTION' : 'VISUAL MATCH',
-      sources: ['apple_2model'],
-      evidence: m.explanation || `Action verified by FastVLM-0.5B (confidence: ${Math.round((m.clip_score || 0.8) * 100)}%)`,
-      video_url: videoBlobUrl
-    }));
+    // UI Loading state
+    searchBtn.disabled = true;
+    loadingState.hidden = false;
+    resultSection.hidden = true;
 
-    $('search-status').textContent = `Found ${currentHits.length} moment${currentHits.length > 1 ? 's' : ''} in ${data.total_latency_seconds ? data.total_latency_seconds + 's' : 'seconds'}!`;
-    if (instantStatus) instantStatus.textContent = `✓ Found moment at ${currentHits[0].interval_formatted}! Playing below.`;
-    renderResults();
-    showHit(0);
-  } catch (err) {
-    console.error('Instant search failed:', err);
-    $('search-status').textContent = err.message;
-    $('viewer').innerHTML = `<div class="viewer-placeholder"><span class="placeholder-play">!</span><strong>Search failed</strong><p>${escapeHtml(err.message)}</p></div>`;
-    if (instantStatus) instantStatus.textContent = `Error: ${err.message}`;
-  } finally {
-    if (instantSubmitBtn) instantSubmitBtn.disabled = false;
-  }
-}
-
-const instantFileInput = $('instant-file');
-const instantFileName = $('instant-file-name');
-const instantForm = $('instant-form');
-const instantQuery = $('instant-query');
-
-if (instantFileInput) {
-  instantFileInput.addEventListener('change', () => {
-    currentVideoFile = instantFileInput.files[0] || null;
-    if (instantFileName) instantFileName.textContent = currentVideoFile ? currentVideoFile.name : 'No file chosen';
-  });
-}
-
-if (instantForm) {
-  instantForm.addEventListener('submit', event => {
-    event.preventDefault();
-    const file = currentVideoFile || (instantFileInput ? instantFileInput.files[0] : null);
-    const q = instantQuery ? instantQuery.value : '';
-    runInstantMomentSearch(file, q);
-  });
-}
-
-document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
-$('search-form').addEventListener('submit', event => {
-  event.preventDefault();
-  const query = $('query').value.trim();
-  if (!query) return;
-  if (currentVideoFile) {
-    runInstantMomentSearch(currentVideoFile, query);
-  } else {
-    search(query);
-  }
-});
-$('upload-open').addEventListener('click', () => $('upload-dialog').showModal());
-$('upload-close').addEventListener('click', () => $('upload-dialog').close());
-$('refresh-button').addEventListener('click', () => refreshVideos().catch(showError));
-$('filter-input').addEventListener('input', renderLibrary);
-$('status-filter').addEventListener('change', renderLibrary);
-$('file').addEventListener('change', () => { $('selected-file').textContent = $('file').files[0]?.name || ''; });
-$('upload-form').addEventListener('submit', async event => {
-  event.preventDefault();
-  const file = $('file').files[0];
-  if (!file) return;
-  $('upload-status').textContent = 'Uploading and validating video…';
-  try {
     const form = new FormData();
-    form.append('file',file);
-    const data = await request('/api/upload',{method:'POST',body:form});
-    $('upload-status').textContent = data.status === 'already_uploaded' ? 'This video is already in the library.' : 'Upload complete. Indexing has started.';
-    $('upload-form').reset();
-    $('selected-file').textContent = '';
-    await refreshVideos();
-    setTimeout(() => $('upload-dialog').close(),1000);
-  } catch(error) { $('upload-status').textContent = error.message; }
-});
-function followSharedLink() {
-  const params = new URLSearchParams(location.search);
-  const id = params.get('video'), stamp = Number(params.get('t') || 0);
-  if (id) openVideo(id, Number.isFinite(stamp) ? stamp : 0);
-}
-if (location.protocol === 'file:') {
-  $('app-shell').hidden = true;
-  $('launch-screen').hidden = false;
-} else {
-  refreshVideos().then(followSharedLink).catch(showError);
-}
+    form.append('file', selectedVideoFile);
+    form.append('query', query);
+    form.append('sample_fps', '1.0');
+    form.append('top_k', '3');
+
+    try {
+      let res = await fetch('/extract_moments', { method: 'POST', body: form });
+      if (!res.ok && res.status === 404) {
+        res = await fetch('/api/extract_moments', { method: 'POST', body: form });
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Could not find the moment in this video.');
+      }
+
+      const data = await res.json();
+      activeMoments = data.moments || [];
+
+      if (!activeMoments.length) {
+        alert(`No moment found matching "${query}". Try describing it with different words.`);
+        return;
+      }
+
+      // Populate other moments list if > 1
+      momentsList.innerHTML = '';
+      if (activeMoments.length > 1) {
+        otherMoments.hidden = false;
+        activeMoments.forEach((m, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `moment-pill-btn ${idx === 0 ? 'active' : ''}`;
+          btn.textContent = `Scene ${idx + 1} (${formatTime(m.start)})`;
+          btn.addEventListener('click', () => displayMoment(idx));
+          momentsList.appendChild(btn);
+        });
+      } else {
+        otherMoments.hidden = true;
+      }
+
+      // Show result and play top moment
+      resultSection.hidden = false;
+      displayMoment(0);
+
+      // Smooth scroll to result
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch (err) {
+      alert(err.message || 'Error processing video.');
+    } finally {
+      searchBtn.disabled = false;
+      loadingState.hidden = true;
+    }
+  });
+
+  // Background health check
+  async function checkHealth() {
+    try {
+      const res = await fetch('/api/health');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.kaggle_gpu_status === 'connected') {
+          statusText.textContent = 'AI Ready';
+        } else if (data.status === 'healthy') {
+          statusText.textContent = 'Ready';
+        }
+      }
+    } catch {
+      statusText.textContent = 'Ready';
+    }
+  }
+
+  checkHealth();
+})();
