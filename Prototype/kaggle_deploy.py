@@ -43,96 +43,10 @@ if torch.cuda.is_available():
     print(f"[MomentFlow Kaggle] CUDA Capability: {props.major}.{props.minor}")
 
 # ---------------------------------------------------------------------------
-# Model 1: Apple MobileCLIP-B Loader
+# Apple 2-Model Stack Loaders
 # ---------------------------------------------------------------------------
-import open_clip
-
-class KaggleAppleMobileClip:
-    def __init__(self, model_name: str = "MobileCLIP-B", pretrained: str = "datacompdr"):
-        print(f"[MomentFlow] Loading Model 1: Apple {model_name} on {DEVICE} ({DTYPE})...")
-        t0 = time.perf_counter()
-        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
-            model_name,
-            pretrained=pretrained,
-            device=DEVICE
-        )
-        self.tokenizer = open_clip.get_tokenizer(model_name)
-        self.model = self.model.to(dtype=DTYPE).eval()
-        print(f"[MomentFlow] MobileCLIP-B loaded in {time.perf_counter() - t0:.2f}s!")
-
-    @torch.no_grad()
-    def encode_text(self, text: str) -> np.ndarray:
-        tokens = self.tokenizer([text]).to(DEVICE)
-        vec = self.model.encode_text(tokens)
-        vec = vec / vec.norm(dim=-1, keepdim=True)
-        return vec.squeeze(0).cpu().to(torch.float32).numpy()
-
-    @torch.no_grad()
-    def encode_images(self, pil_images: List[Image.Image], batch_size: int = 64) -> np.ndarray:
-        if not pil_images:
-            return np.empty((0, 512), dtype=np.float32)
-        all_vecs = []
-        for i in range(0, len(pil_images), batch_size):
-            batch = pil_images[i : i + batch_size]
-            tensors = torch.stack([self.preprocess(img) for img in batch]).to(device=DEVICE, dtype=DTYPE)
-            vecs = self.model.encode_image(tensors)
-            vecs = vecs / vecs.norm(dim=-1, keepdim=True)
-            all_vecs.append(vecs.cpu().to(torch.float32).numpy())
-        return np.concatenate(all_vecs, axis=0)
-
-# ---------------------------------------------------------------------------
-# Model 2: Apple FastVLM-0.5B Loader
-# ---------------------------------------------------------------------------
-from transformers import AutoModelForCausalLM, AutoProcessor
-
-class KaggleAppleFastVLM:
-    def __init__(self, model_id: str = "apple/FastVLM-0.5B"):
-        print(f"[MomentFlow] Loading Model 2: Apple {model_id} on {DEVICE} ({DTYPE})...")
-        t0 = time.perf_counter()
-        self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            torch_dtype=DTYPE,
-            device_map=DEVICE,
-            trust_remote_code=True
-        ).eval()
-        print(f"[MomentFlow] FastVLM-0.5B loaded in {time.perf_counter() - t0:.2f}s!")
-
-    @torch.no_grad()
-    def verify_action(self, image: Image.Image, prompt_text: str) -> Dict[str, Any]:
-        t0 = time.perf_counter()
-        question = (
-            f"Look at this video keyframe. Does it clearly depict the action or moment: '{prompt_text}'? "
-            f"Answer with 'Yes' or 'No', followed by a one-sentence factual visual explanation of what is happening."
-        )
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image"},
-                    {"type": "text", "text": question}
-                ]
-            }
-        ]
-        prompt = self.processor.apply_chat_template(messages, add_generation_prompt=True)
-        inputs = self.processor(text=prompt, images=[image], return_tensors="pt").to(DEVICE)
-        
-        output_ids = self.model.generate(
-            **inputs,
-            max_new_tokens=60,
-            do_sample=False,
-            pad_token_id=self.processor.tokenizer.pad_token_id or self.processor.tokenizer.eos_token_id
-        )
-        gen_tokens = output_ids[0][inputs.input_ids.shape[1]:]
-        response = self.processor.decode(gen_tokens, skip_special_tokens=True).strip()
-        latency = time.perf_counter() - t0
-
-        verified = response.lower().startswith("yes")
-        return {
-            "verified": verified,
-            "explanation": response,
-            "latency_seconds": round(latency, 4)
-        }
+from apple_encoder import AppleMobileClipEncoder
+from apple_grounder import AppleFastVLMVerifier
 
 # ---------------------------------------------------------------------------
 # Global Server App & State
@@ -151,15 +65,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-mobile_clip: Optional[KaggleAppleMobileClip] = None
-fast_vlm: Optional[KaggleAppleFastVLM] = None
+mobile_clip: Optional[AppleMobileClipEncoder] = None
+fast_vlm: Optional[AppleFastVLMVerifier] = None
 
 @app.on_event("startup")
 def startup_event():
     global mobile_clip, fast_vlm
-    mobile_clip = KaggleAppleMobileClip()
-    fast_vlm = KaggleAppleFastVLM()
-    print("[MomentFlow] Both Apple models loaded and ready for high-speed inference!")
+    print(f"[MomentFlow] Loading Model 1 (MobileCLIP-B) & Model 2 (FastVLM-0.5B) on {DEVICE}...")
+    mobile_clip = AppleMobileClipEncoder(device=DEVICE)
+    fast_vlm = AppleFastVLMVerifier(device=DEVICE)
+    print(f"[MomentFlow] Both Apple models successfully loaded on {DEVICE} and ready for inference!")
 
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -301,8 +216,8 @@ async def extract_moments(
 
         # Step 2: Model 1 Vector Search (MobileCLIP-B)
         t_stage1 = time.perf_counter()
-        q_vec = mobile_clip.encode_text(query)
-        frame_vecs = mobile_clip.encode_images(pil_frames)
+        q_vec = mobile_clip.text(query)
+        frame_vecs = mobile_clip.images(pil_frames)
         similarities = frame_vecs @ q_vec
         s1_latency = time.perf_counter() - t_stage1
 
@@ -327,7 +242,9 @@ async def extract_moments(
             end_sec = min(duration, peak_time + window_padding)
 
             keyframe = pil_frames[idx]
-            v_res = fast_vlm.verify_action(keyframe, query)
+            t_v = time.perf_counter()
+            verified, explanation = fast_vlm.verify_action(keyframe, query)
+            v_lat = time.perf_counter() - t_v
 
             moments.append({
                 "rank": rank,
@@ -335,9 +252,9 @@ async def extract_moments(
                 "end": round(end_sec, 2),
                 "peak": round(peak_time, 2),
                 "clip_score": round(sim_score, 4),
-                "verified": v_res["verified"],
-                "explanation": v_res["explanation"],
-                "verification_latency": v_res["latency_seconds"]
+                "verified": verified,
+                "explanation": explanation,
+                "verification_latency": round(v_lat, 4)
             })
 
         total_latency = time.perf_counter() - t_start
