@@ -92,6 +92,7 @@ def set_backend(payload: SetBackendPayload):
     return {"status": "success", "kaggle_backend_url": KAGGLE_BACKEND_URL}
 
 
+@app.post("/extract_moments")
 @app.post("/api/extract_moments")
 async def extract_moments(
     file: UploadFile = File(...),

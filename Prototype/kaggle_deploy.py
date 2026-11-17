@@ -164,6 +164,7 @@ class TextVerifyRequest(BaseModel):
     base64_image: Optional[str] = None
 
 @app.post("/extract_moments")
+@app.post("/api/extract_moments")
 async def extract_moments(
     file: UploadFile = File(...),
     query: str = Form(...),

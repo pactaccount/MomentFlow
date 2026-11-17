@@ -57,6 +57,28 @@
       </header>
 
       <main>
+        <!-- Instant Video Moment Search Card -->
+        <section id="instant-search-section" style="background:#ffffff; border:1px solid #dce4ed; border-radius:12px; padding:22px 24px; margin-bottom:28px; box-shadow:0 4px 16px rgba(36,54,74,0.06);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div>
+              <span class="eyebrow" style="margin:0; font-size:10px; color:#137f83; letter-spacing:0.15em;">⚡ APPLE 2-MODEL PIPELINE</span>
+              <h2 style="margin:4px 0 0; font-size:18px; color:#1e293b;">Find any moment in your video</h2>
+              <p class="subhead" style="margin:2px 0 0; font-size:12px;">Upload a video, type what happened (e.g. <em>cutting tomatoes</em>, <em>scoring a goal</em>), and watch the clip.</p>
+            </div>
+            <span class="heading-tag" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;">MobileCLIP + FastVLM Active</span>
+          </div>
+          <form id="instant-form" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+            <label class="primary" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; cursor:pointer; font-weight:600;">
+              📁 Select video file
+              <input type="file" id="instant-file" accept="video/*,.mkv" style="display:none;" required>
+            </label>
+            <span id="instant-file-name" style="font-size:12px; color:#64748b; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">No file chosen</span>
+            <input type="text" id="instant-query" placeholder="Describe the moment (e.g. 'cutting onions', 'dog jumping')" style="flex:1; min-width:240px; height:40px; padding:0 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;" required>
+            <button type="submit" id="instant-submit-btn" class="primary" style="height:40px; padding:0 20px; font-weight:700;">Find Moment ⚡</button>
+          </form>
+          <p id="instant-status" class="message" style="margin-top:8px;" role="status"></p>
+        </section>
+
         <section id="library-view">
           <div class="page-heading">
             <div><p class="eyebrow">CONTENT WORKSPACE</p><h1>Video library</h1><p class="subhead">One place to prepare, inspect, and search every recording.</p></div>
