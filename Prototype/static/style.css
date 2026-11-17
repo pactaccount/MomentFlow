@@ -267,9 +267,10 @@ body {
   outline: none;
   background: transparent;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 16px; /* 16px prevents iOS Safari auto-zoom on focus */
   color: var(--text-primary);
   min-width: 0;
+  padding: 6px 0;
 }
 
 .query-box input::placeholder {
@@ -285,13 +286,15 @@ body {
   color: #ffffff;
   border: none;
   border-radius: var(--radius-pill);
-  padding: 10px 22px;
+  padding: 12px 24px;
+  min-height: 44px; /* Apple HIG recommended touch target */
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .apple-button:hover {
@@ -306,16 +309,19 @@ body {
 .secondary-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   background: #ffffff;
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  padding: 7px 16px;
+  padding: 8px 18px;
+  min-height: 40px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .secondary-button:hover {
@@ -444,21 +450,41 @@ body {
   border-color: var(--apple-blue);
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments for Mobile & Tablets */
 @media (max-width: 600px) {
   .page-container {
-    padding: 32px 16px 60px;
+    padding: 24px 16px 48px;
+  }
+  .hero-section {
+    margin-bottom: 24px;
   }
   .app-card {
     padding: 20px 16px;
+    border-radius: 18px;
+  }
+  .upload-box {
+    padding: 24px 16px;
   }
   .query-box {
     flex-direction: column;
     align-items: stretch;
-    border-radius: var(--radius-md);
-    padding: 10px;
+    border-radius: 16px;
+    padding: 12px;
+    gap: 8px;
+  }
+  .query-box input {
+    padding: 6px 4px;
   }
   .apple-button {
-    margin-top: 6px;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .moment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .secondary-button {
+    width: 100%;
   }
 }
